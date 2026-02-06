@@ -1,0 +1,380 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+model User {
+  UserID     Int       @id @default(autoincrement())
+  Username   String? @unique
+  Password   String?
+  Type       UserType?
+  GoogleID   String? @unique
+  Email      String? @unique
+
+  Student    Student?
+  Offi
+  
+  er    Officer?
+  User_Role  User_Role[]
+  Student_Enroll Student_Enroll[]
+  PersonalEvent  PersonalEvent[]
+  Notification   Notification[]
+  ActivityPort   ActivityPort[]
+  PostComment  PostComment[]
+  Follow_ActivityPost Follow_ActivityPost[]
+  ScholarshipApplication ScholarshipApplication[]
+}
+enum UserType {
+  Student
+  Officer
+}
+model Student {
+  StudentID    Int    @id @default(autoincrement())
+  StudentCode  Int? @unique
+  Year         Int?
+  Name         String?
+  Surname      String?
+  Picture      String?
+  Semester     Int?
+  UserID       Int  @unique
+  User         User   @relation(fields: [UserID], references: [UserID])
+}
+model Officer {
+  OfficerID Int   @id @default(autoincrement())
+  Name      String?
+  Surname   String?
+  Picture   String?
+  UserID    Int @unique
+
+  User      User @relation(fields: [UserID], references: [UserID])
+  ActivityPost ActivityPost[]
+  Scholarship  Scholarship[]
+  Welfare      Welfare[]
+  Hospital     Hospital[]
+  Post         Post[]
+}
+model User_Role {
+  User_RoleID Int @id @default(autoincrement())
+  RoleID      Int
+  UserID      Int
+
+  Role Role @relation(fields: [RoleID], references: [RoleID])
+  User User @relation(fields: [UserID], references: [UserID])
+}
+model Role {
+  RoleID    Int @id @default(autoincrement())
+  RoleName  String?
+
+  User_Role User_Role[]
+}
+model Student_Enroll {
+  Student_EnrollID Int @id @default(autoincrement())
+  SecID            Int
+  UserID           Int
+
+  Subject_Sec Subject_Sec @relation(fields: [SecID], references: [SecID])
+  User        User        @relation(fields: [UserID], references: [UserID])
+}
+model Subject {
+  SubjectID     Int    @id @default(autoincrement())
+  Name          String?
+  SubjectCode   String?
+  MidtermExam   DateTime?
+  FinalExam     DateTime?
+
+  Subject_Sec   Subject_Sec[]
+}
+model Subject_Sec {
+  SecID      Int      @id @default(autoincrement())
+  Section    Int?
+  StartTime  DateTime?
+  EndTime    DateTime?
+  StudyTime  StudyDay?
+  Professor  String?
+  Classroom  String?
+  SubjectID  Int
+
+  Subject    Subject @relation(fields: [SubjectID], references: [SubjectID])
+  Student_Enroll Student_Enroll[]
+}
+enum StudyDay {
+  Monday
+  Tuesday
+  Wendesday
+  Thursday
+  Friday
+  Saturday
+  Sunday
+}
+model PersonalEvent {
+  PersonalEventID Int @id @default(autoincrement())
+  Title           String?
+  Description     String?
+  Deadline        DateTime?
+  Notify          Boolean?
+  NotifyDatetime  DateTime?
+  UserID          Int
+
+  User            User @relation(fields: [UserID], references: [UserID])
+}
+model Notification {
+  NotificationID  Int @id @default(autoincrement())
+  Title           String?
+  Message         String?
+  IsRead          Boolean?
+  NotificationType NotificationType?
+  ActionURL       String?
+  IsSent       Boolean?
+  NotificationTime DateTime?
+  UserID          Int
+  User            User @relation(fields: [UserID], references: [UserID])
+}
+enum NotificationType {
+  scholarship
+  activity
+  news
+  selfevent
+}
+model Activity {
+  ActivityID       Int @id @default(autoincrement())
+  ActivityName     String?
+  Description      String?
+  HourofActivity   Int?
+  Location         String?
+  DatetimeofActivity DateTime?
+  Status           ActivityStatus?
+  Comment          String?
+  ActivityPortID   Int
+
+  ActivityPort     ActivityPort @relation(fields: [ActivityPortID], references: [ActivityPortID],onDelete: Cascade)
+  ActivityEvidence ActivityEvidence[]
+}
+enum ActivityStatus {
+  waitforprocess
+  approve
+  reject
+}
+model ActivityEvidence {
+  EvidenceID  Int @id @default(autoincrement())
+  Picture     String?
+  ActivityID  Int
+
+  Activity    Activity @relation(fields: [ActivityID], references: [ActivityID],onDelete: Cascade)
+}
+model ActivityPort {
+  ActivityPortID Int @id @default(autoincrement())
+  Portname       String?
+  HourNeed       Int?
+  Type           PortType?
+  CreateDate     DateTime?
+  EndDate        DateTime?
+  UserID         Int
+  status         PortStatus?
+  User           User @relation(fields: [UserID], references: [UserID])
+  ScholarshipID  Int?
+  Scholarship    Scholarship? @relation(fields: [ScholarshipID], references: [ScholarshipID])
+  Activity       Activity[]
+}
+enum PortStatus {
+  active
+  expired
+  completed
+}
+enum PortType {
+  Custom
+  Scholarship
+}
+
+model ActivityPost {
+  ActivityPostID Int @id @default(autoincrement())
+  Title          String?
+  Description    String?
+  HourofActivity Int?
+  Location       String?
+  DatetimeofActivity DateTime?
+  OfficerID      Int
+
+  Officer        Officer @relation(fields: [OfficerID], references: [OfficerID])
+  Follow_ActivityPost Follow_ActivityPost[]
+}
+
+model Follow_ActivityPost {
+  Follow_ActivityID Int @id @default(autoincrement())
+  ActivityPostID    Int
+  UserID            Int
+
+  ActivityPost ActivityPost @relation(fields: [ActivityPostID], references: [ActivityPostID])
+  User         User         @relation(fields: [UserID], references: [UserID])
+}
+
+model Scholarship {
+  ScholarshipID   Int @id @default(autoincrement())
+  Scholarshipname String?
+  Description     String? @db.Text //มอสแก้
+  Startdate       DateTime?
+  Enddate         DateTime?
+  AnnouceStudentInterviewday DateTime?
+  Interviewday    DateTime?
+  WinnerAnnouceday DateTime?
+  ActivityHourNeeded Int?  @default(0)
+  Picture         String?
+  OfficerID       Int
+  ActivityPorts    ActivityPort[]
+  Officer Officer @relation(fields: [OfficerID], references: [OfficerID])
+  ScholarshipRequirement ScholarshipRequirement[]
+  ScholarshipApplication ScholarshipApplication[]
+}
+
+model ScholarshipRequirement {
+  RequirementID Int @id @default(autoincrement())
+  Name          String?
+  Type          FileType?
+  Require       Boolean?
+  Description   String?
+  ScholarshipID Int
+
+  Scholarship   Scholarship @relation(fields: [ScholarshipID], references: [ScholarshipID],onDelete: Cascade)
+  ScholarshipSubmission ScholarshipSubmission[]
+}
+
+enum FileType {
+  picture
+  document
+}
+
+model ScholarshipApplication {
+  ApplicationID Int @id @default(autoincrement())
+  ApplicationDate DateTime?
+  Status        ApplyStatus?
+  ScholarshipID Int
+  UserID        Int
+
+  Scholarship   Scholarship @relation(fields: [ScholarshipID], references: [ScholarshipID],onDelete: Cascade)
+  User          User        @relation(fields: [UserID], references: [UserID])
+  ScholarshipSubmission ScholarshipSubmission[]
+}
+
+enum ApplyStatus {
+  waitingforprocess
+  reject
+  waitforinterview
+  approve
+}
+
+model ScholarshipSubmission {
+  SubmissionID   Int @id @default(autoincrement())
+  StudentDocument String?
+  ApplicationID  Int
+  RequirementID  Int
+
+  ScholarshipApplication ScholarshipApplication @relation(fields: [ApplicationID], references: [ApplicationID],onDelete: Cascade)
+  ScholarshipRequirement ScholarshipRequirement @relation(fields: [RequirementID], references: [RequirementID],onDelete: Cascade)
+}
+
+model Welfare {
+  WelfareID       Int @id @default(autoincrement())
+  WelfareType     WelfareType?
+  WelfareTitle    String?
+  Description     String? @db.Text //มอสแก้
+  WelfareGuide    String?
+  WelfareDocument String?
+  OfficerID       Int
+
+  Officer Officer @relation(fields: [OfficerID], references: [OfficerID])
+}
+
+enum WelfareType {
+  registercourse
+  healthcare
+  scholarship
+  petition
+}
+
+model Hospital {
+  HospitalID   Int @id @default(autoincrement())
+  HospitalName String?
+  PlaceID      String?
+  OfficerID    Int
+  photourl      String? @db.Text
+  province    String?
+  latitude     Float?
+  longitude    Float?
+  Officer Officer @relation(fields: [OfficerID], references: [OfficerID])
+}
+model Post {
+  PostID        Int      @id @default(autoincrement())
+  Content       String?
+  Type          PostType?
+  IsPinned      Boolean?      @default(false)
+  NotifyType    NotifyType?
+  Visibility    PostVisibilityType @default(PUBLIC) 
+  Schedule_Time DateTime?
+  ExpireDate    DateTime?
+  CreateDate    DateTime?     @default(now())
+  CanComment    Boolean?      @default(true)
+  OfficerID     Int
+  Officer       Officer       @relation(fields: [OfficerID], references: [OfficerID])
+  PostPicture   PostPicture[]
+  PostComment   PostComment[]
+  PostTarget    PostTarget[]  
+}
+model PostTarget {
+  PostTargetID  Int @id @default(autoincrement())
+  PostID        Int
+  Post          Post @relation(fields: [PostID], references: [PostID], onDelete: Cascade)
+  TargetType    TargetType 
+  TargetID      Int?     
+  TargetExtraID Int?     
+}
+enum PostType {
+  normal
+  scholarship
+  Welfare
+  education
+}
+
+enum NotifyType {
+  urgent
+  schedule
+  normal
+  silent
+}
+enum PostVisibilityType {
+  PUBLIC    
+  SPECIFIC
+}
+enum TargetType {
+  USER                  
+  SECTION               
+  SUBJECT               
+  MAJOR                 
+  YEAR_LEVEL            
+  SCHOLARSHIP_STAR      
+  ACTIVITY_STAR         
+  ACTIVITY_FOLLOWER     
+  SCHOLARSHIP_APPLICANT 
+  YEAR_MAJOR          
+}
+model PostPicture {
+  PostPictureID Int     @id @default(autoincrement())
+  Picture       String?
+  PostID        Int
+  Post          Post    @relation(fields: [PostID], references: [PostID], onDelete: Cascade)
+}
+
+model PostComment {
+  CommentID      Int       @id @default(autoincrement())
+  Content        String?
+  Comment_at     DateTime? @default(now())
+  PostID         Int
+  UserID         Int
+  Parent_comment Int?      
+  Parent         PostComment?  @relation("ReplyToComment", fields: [Parent_comment], references: [CommentID], onDelete: Cascade)
+  Replies        PostComment[] @relation("ReplyToComment")
+
+  Post           Post      @relation(fields: [PostID], references: [PostID], onDelete: Cascade)
+  User           User      @relation(fields: [UserID], references: [UserID])
+}
