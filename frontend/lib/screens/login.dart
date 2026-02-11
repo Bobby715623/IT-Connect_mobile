@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:myproject/services/auth_service.dart';
 
 import 'package:myproject/services/google_auth_service.dart';
 import 'package:myproject/screens/navigation_bar.dart';
@@ -74,8 +75,7 @@ class _LoginPageState extends State<LoginPage> {
       debugPrint('JWT RECEIVED');
 
       // 5️⃣ Save JWT (สำคัญมาก)
-      final storage = FlutterSecureStorage();
-      await storage.write(key: 'access_token', value: jwt);
+      await AuthService.saveToken(jwt);
 
       // 6️⃣ Navigate to Home
       if (!mounted) return;

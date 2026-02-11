@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../widgets/notification_card.dart';
 import '../models/notification.dart';
 import '../services/notification_service.dart';
 

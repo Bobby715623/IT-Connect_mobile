@@ -42,4 +42,9 @@
             <data android:mimeType="text/plain"/>
         </intent>
     </queries>
+    
+    <!-- เพิ่มมาเอง -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/> 
+    
+
 </manifest>

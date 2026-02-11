@@ -15,9 +15,7 @@ model User {
   Email      String? @unique
 
   Student    Student?
-  Offi
-  
-  er    Officer?
+  Officer    Officer?
   User_Role  User_Role[]
   Student_Enroll Student_Enroll[]
   PersonalEvent  PersonalEvent[]

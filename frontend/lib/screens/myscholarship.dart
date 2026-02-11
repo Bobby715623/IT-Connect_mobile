@@ -3,7 +3,9 @@ import 'package:myproject/models/myscholarship.dart';
 import 'package:myproject/services/scholarshipApplication_service.dart';
 
 class MyScholarshipPage extends StatefulWidget {
-  const MyScholarshipPage({super.key});
+  final VoidCallback onGoHome;
+
+  const MyScholarshipPage({super.key, required this.onGoHome});
 
   @override
   State<MyScholarshipPage> createState() => _MyScholarshipPageState();
@@ -28,16 +30,51 @@ class _MyScholarshipPageState extends State<MyScholarshipPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ===============================
-            // HEADER
+            // TABS
             // ===============================
-            const Padding(
-              padding: EdgeInsets.all(16),
-              child: Text(
-                'MY SCHOLARSHIP',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  _TabButton(
+                    title: 'ALL SCHOLARSHIP',
+                    isActive: false,
+                    onTap: () {
+                      Navigator.pop(context); // 👈 กลับไปหน้า ALL
+                    },
+                  ),
+                  const SizedBox(width: 8),
+                  const _TabButton(
+                    title: 'MY SCHOLARSHIP',
+                    isActive: true, // 👈 หน้านี้ active
+                  ),
+                ],
               ),
             ),
 
+            const SizedBox(height: 12),
+
+            // ===== HOME =====
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: GestureDetector(
+                onTap: widget.onGoHome,
+                child: Row(
+                  children: const [
+                    Icon(Icons.arrow_back_ios, size: 14, color: Colors.blue),
+                    SizedBox(width: 4),
+                    Text(
+                      'HOME',
+                      style: TextStyle(
+                        color: Colors.blueAccent,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
             // ===============================
             // LIST
             // ===============================
@@ -168,6 +205,36 @@ class _StatusBadge extends StatelessWidget {
           color: Colors.white,
           fontSize: 12,
           fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+}
+
+class _TabButton extends StatelessWidget {
+  final String title;
+  final bool isActive;
+  final VoidCallback? onTap;
+
+  const _TabButton({required this.title, required this.isActive, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: isActive ? Colors.blueAccent : Colors.grey.shade300,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          title,
+          style: TextStyle(
+            color: isActive ? Colors.white : Colors.black87,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
     );

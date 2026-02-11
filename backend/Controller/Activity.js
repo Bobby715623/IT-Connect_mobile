@@ -132,6 +132,28 @@ exports.singleactivityport = async (req, res) => {
     }
 };
 
+//มอสเพิ่มนะ เอาดึง port ของแต่ละ user
+exports.activityportByUser = async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        const ports = await prisma.activityPort.findMany({
+            where: {
+                UserID: Number(userId)
+            },
+            include: {
+                Activity: true
+            }
+        });
+
+        res.json(ports);
+    } catch (err) {
+        console.log(err);
+        res.status(500).json({ message: "Server Error" });
+    }
+};
+
+
 exports.createactivityport = async (req, res) => {
     try {
         const { Portname, HourNeed, Type, CreateDate, EndDate, UserID } = req.body;

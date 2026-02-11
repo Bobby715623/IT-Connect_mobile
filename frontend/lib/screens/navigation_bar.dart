@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:myproject/screens/activity.dart';
+import 'package:myproject/screens/activity_port.dart';
 import 'package:myproject/screens/welfare.dart';
 import 'scholarship.dart';
 import '../widgets/custom_bottom_nav.dart';
@@ -40,7 +40,11 @@ class _MainNavigationState extends State<MainNavigation> {
         setState(() => currentIndex = 0);
       },
     ),
-    ActivityPage(),
+    ActivityPage(
+      onGoHome: () {
+        setState(() => currentIndex = 0);
+      },
+    ),
     WelfarePage(
       onGoHome: () {
         setState(() => currentIndex = 0);

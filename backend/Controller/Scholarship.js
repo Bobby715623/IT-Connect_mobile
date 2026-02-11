@@ -153,7 +153,8 @@ exports.applyScholarship = async (req, res) => {
 
 exports.myHistory = async (req, res) => {
   try {
-    const userId = req.user.UserID;
+    const userId = req.user.userId;
+
 
     const history = await prisma.scholarshipApplication.findMany({
       where: { UserID: userId },

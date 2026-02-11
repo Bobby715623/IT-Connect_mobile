@@ -44,7 +44,11 @@ class _ScholarshipPageState extends State<ScholarshipPage> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => const MyScholarshipPage(),
+                          builder: (_) => MyScholarshipPage(
+                            onGoHome: () {
+                              Navigator.pop(context);
+                            },
+                          ),
                         ),
                       );
                     },

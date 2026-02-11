@@ -1,14 +1,27 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:myproject/models/myscholarship.dart';
+import '../models/myscholarship.dart';
+import 'auth_service.dart';
 
 class ScholarshipService {
+  static const String baseUrl = 'http://10.0.2.2:3000';
+
   static Future<List<ScholarshipApplication>> getMyHistory(int userId) async {
-    final res = await http.get(
-      Uri.parse('http://10.0.2.2:3000/api/scholarship/history/$userId'),
+    final token = await AuthService.getToken();
+
+    final response = await http.get(
+      Uri.parse('$baseUrl/api/scholarship/history/$userId'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
     );
 
-    final List data = json.decode(res.body);
+    if (response.statusCode != 200) {
+      throw Exception('โหลดข้อมูลไม่สำเร็จ (${response.statusCode})');
+    }
+
+    final List data = jsonDecode(response.body);
     return data.map((e) => ScholarshipApplication.fromJson(e)).toList();
   }
 }

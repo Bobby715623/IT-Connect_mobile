@@ -10,8 +10,9 @@ router.put('/Activitypost/:activitypostId',updateactivitypost);
 router.delete('/Activitypost/:activitypostId', removeactivitypost);
 //port ฝั่งนักศึกษา
 const {activityportlist,singleactivityport,createactivityport,updateactivityport,removeactivityport,
-    singleactivity,createactivity,updateactivity,removeactivity,followactivity} = require('../Controller/Activity');
+    singleactivity,createactivity,updateactivity,removeactivity,followactivity, activityportByUser} = require('../Controller/Activity');
 router.get('/Activityport',activityportlist);
+router.get('/Activityport/user/:userId', activityportByUser); //มอสเพิ่มใหม่
 router.get('/Activityport/:activityportId',singleactivityport);
 router.post('/Activityport',createactivityport);
 router.put('/Activityport/:activityportId',updateactivityport);

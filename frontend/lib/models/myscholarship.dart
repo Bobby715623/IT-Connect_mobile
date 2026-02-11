@@ -15,8 +15,9 @@ class ScholarshipApplication {
     return ScholarshipApplication(
       applicationID: json['ApplicationID'],
       status: ApplyStatusExtension.fromString(json['Status']),
-      scholarshipTitle: json['Scholarship']['Title'],
-      submittedCount: (json['ScholarshipSubmission'] as List).length,
+      scholarshipTitle:
+          json['Scholarship']?['Scholarshipname'] ?? '-', // 👈 ตรงนี้
+      submittedCount: (json['ScholarshipSubmission'] as List?)?.length ?? 0,
     );
   }
 }
