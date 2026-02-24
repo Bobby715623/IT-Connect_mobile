@@ -69,11 +69,18 @@ exports.updatePersonalEvent = async (req, res) => {
 exports.deletePersonalEvent = async (req, res) => {
     try {
         const { eventId } = req.params;
-        await prisma.personalEvent.delete({
+
+        console.log("Deleting ID:", eventId);
+
+        const deleted = await prisma.personalEvent.delete({
             where: { PersonalEventID: Number(eventId) }
         });
-        res.status(200).json({ message: "ลบกิจกรรมสำเร็จ" });
+
+        res.status(200).json({ message: "ลบกิจกรรมสำเร็จ", data: deleted });
+
     } catch (error) {
+        console.error("DELETE ERROR:", error);
         res.status(500).json({ error: error.message });
     }
 };
+//แก้แล้ว

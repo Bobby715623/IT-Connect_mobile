@@ -42,6 +42,38 @@ class PersonalEventService {
     }
   }
 
+  // 🔹 Update
+  static Future<PersonalEvent?> updateEvent({
+    required int id,
+    required String title,
+    String? description,
+    DateTime? deadline,
+    bool? notify,
+    DateTime? notifyDatetime,
+  }) async {
+    final body = {
+      "Title": title,
+      "Description": description,
+      "Deadline": deadline?.toIso8601String(),
+      "Notify": notify,
+      "NotifyDatetime": notifyDatetime?.toIso8601String(),
+    };
+
+    final response = await http.put(
+      Uri.parse("$baseUrl/$id"),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode(body),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+
+      return PersonalEvent.fromJson(data["data"]);
+    }
+
+    return null;
+  }
+
   // 🔹 Delete
   static Future<bool> deleteEvent(int eventId) async {
     final response = await http.delete(Uri.parse("$baseUrl/$eventId"));

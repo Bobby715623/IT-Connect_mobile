@@ -40,6 +40,20 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
       initialDate: startDateTime ?? DateTime.now(),
       firstDate: DateTime(2023),
       lastDate: DateTime(2030),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Colors.blueAccent,
+              onPrimary: Colors.white,
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(foregroundColor: Colors.blueAccent),
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
 
     if (date == null) return;
