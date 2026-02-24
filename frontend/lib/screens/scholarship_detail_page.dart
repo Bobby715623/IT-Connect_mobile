@@ -1,209 +1,357 @@
 import 'package:flutter/material.dart';
 import 'package:myproject/screens/upload_document.dart';
-import 'package:myproject/screens/myscholarship.dart';
 import 'package:myproject/models/scholarship.dart';
 import 'package:myproject/services/scholarship_service.dart';
+import 'package:myproject/screens/myscholarship.dart';
 
 class ScholarshipDetailPage extends StatelessWidget {
   final int scholarshipId;
+  final int userId;
 
-  const ScholarshipDetailPage({super.key, required this.scholarshipId});
+  const ScholarshipDetailPage({
+    super.key,
+    required this.scholarshipId,
+    required this.userId,
+  });
+
+  String formatThaiDate(DateTime? date) {
+    if (date == null) return "-";
+
+    final thaiMonths = [
+      "",
+      "มกราคม",
+      "กุมภาพันธ์",
+      "มีนาคม",
+      "เมษายน",
+      "พฤษภาคม",
+      "มิถุนายน",
+      "กรกฎาคม",
+      "สิงหาคม",
+      "กันยายน",
+      "ตุลาคม",
+      "พฤศจิกายน",
+      "ธันวาคม",
+    ];
+
+    final buddhistYear = date.year + 543;
+
+    return "${date.day} ${thaiMonths[date.month]} $buddhistYear";
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF8F9FB),
       body: SafeArea(
-        child: FutureBuilder<Scholarship>(
-          future: ScholarshipService.fetchScholarshipById(scholarshipId),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 16),
 
-            if (snapshot.hasError) {
-              return Center(
-                child: Text(
-                  'เกิดข้อผิดพลาด: ${snapshot.error}',
-                  style: const TextStyle(color: Colors.red),
-                ),
-              );
-            }
-
-            final scholarship = snapshot.data!;
-
-            return Column(
-              children: [
-                // ===== Tabs =====
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      const _TabButton(
-                        title: 'ALL SCHOLARSHIP',
-                        isActive: true,
-                      ),
-                      const SizedBox(width: 8),
-                      _TabButton(
-                        title: 'MY SCHOLARSHIP',
-                        isActive: false,
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => MyScholarshipPage(
-                                onGoHome: () {
-                                  Navigator.pop(context);
-                                },
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
+              /// ===== Tabs =====
+              Row(
+                children: [
+                  _TabButton(
+                    title: 'ALL SCHOLARSHIP',
+                    isActive: true,
+                    onTap: () {
+                      Navigator.pop(context);
+                    },
                   ),
-                ),
-
-                // ===== BACK =====
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: Row(
-                      children: const [
-                        Icon(
-                          Icons.arrow_back_ios,
-                          size: 14,
-                          color: Colors.blue,
-                        ),
-                        SizedBox(width: 4),
-                        Text(
-                          'BACK',
-                          style: TextStyle(
-                            color: Colors.blueAccent,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
+                  const SizedBox(width: 8),
+                  _TabButton(
+                    title: 'MY SCHOLARSHIP',
+                    isActive: false,
+                    onTap: () {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => MyScholarshipPage(
+                            userId: userId,
+                            onGoHome: () {
+                              Navigator.pop(context);
+                            },
                           ),
                         ),
-                      ],
-                    ),
+                      );
+                    },
                   ),
-                ),
+                ],
+              ),
 
-                // ===== CONTENT =====
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+              const SizedBox(height: 12),
+
+              /// ===== HOME =====
+              GestureDetector(
+                onTap: () {
+                  Navigator.pop(context);
+                },
+                child: const Row(
+                  children: [
+                    Icon(Icons.arrow_back_ios, size: 14, color: Colors.blue),
+                    SizedBox(width: 4),
+                    Text(
+                      'BACK',
+                      style: TextStyle(
+                        color: Colors.blueAccent,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              /// ===== CONTENT =====
+              Expanded(
+                child: FutureBuilder<Scholarship>(
+                  future: ScholarshipService.fetchScholarshipById(
+                    scholarshipId,
+                  ),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+
+                    final scholarship = snapshot.data!;
+
+                    return ListView(
                       children: [
                         Text(
                           scholarship.name,
                           style: const TextStyle(
-                            fontSize: 16,
+                            fontSize: 24,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
+
                         const SizedBox(height: 12),
-                        Text(
-                          scholarship.description,
-                          style: const TextStyle(fontSize: 13, height: 1.6),
+
+                        _sectionCard(
+                          icon: Icons.description,
+                          title: "รายละเอียดทุน",
+                          child: Text(
+                            scholarship.description,
+                            style: const TextStyle(fontSize: 16, height: 1.8),
+                          ),
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        _sectionCard(
+                          icon: Icons.timer,
+                          title: "เงื่อนไขกิจกรรม",
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              /// จำนวนชั่วโมง
+                              Text(
+                                "ต้องทำกิจกรรมทั้งหมด ${scholarship.activityHourNeeded} ชั่วโมง",
+                                style: const TextStyle(fontSize: 16),
+                              ),
+
+                              const SizedBox(height: 12),
+
+                              /// วันหมดเขตกิจกรรม
+                              Row(
+                                children: [
+                                  const Icon(
+                                    Icons.event_available,
+                                    size: 18,
+                                    color: Colors.redAccent,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    "หมดเขตภายในวันที่ ${formatThaiDate(scholarship.activityDeadline)}",
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.redAccent,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: 30),
+
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 10,
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Row(
+                                children: [
+                                  Icon(
+                                    Icons.calendar_today,
+                                    size: 18,
+                                    color: Colors.blueAccent,
+                                  ),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    "กำหนดการกิจกรรม",
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+
+                              _ScheduleItem(
+                                title: "วันเปิดรับสมัคร",
+                                date: formatThaiDate(scholarship.startDate),
+                                color: Colors.black87,
+                              ),
+
+                              _ScheduleItem(
+                                title: "วันปิดรับสมัคร",
+                                date: formatThaiDate(scholarship.endDate),
+                                color: Colors.red,
+                              ),
+
+                              _ScheduleItem(
+                                title: "ประกาศรายชื่อสัมภาษณ์",
+                                date: formatThaiDate(
+                                  scholarship.announceInterviewDate,
+                                ),
+                                color: Colors.blue,
+                              ),
+
+                              _ScheduleItem(
+                                title: "วันสอบสัมภาษณ์",
+                                date: formatThaiDate(scholarship.interviewDate),
+                                color: Colors.purple,
+                              ),
+
+                              _ScheduleItem(
+                                title: "วันประกาศผล",
+                                date: formatThaiDate(
+                                  scholarship.winnerAnnounceDate,
+                                ),
+                                color: Colors.green,
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: 30),
+
+                        //button
+                        Container(
+                          width: double.infinity,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(30),
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF4F8CFF), Color(0xFF3A6FF7)],
+                            ),
+                          ),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(30),
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => UploadDocumentPage(
+                                      scholarshipId: scholarship.id,
+                                      requirements: scholarship.requirements,
+                                      userId: userId,
+                                    ),
+                                  ),
+                                );
+                              },
+                              child: const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.upload_file_rounded,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                                  SizedBox(width: 10),
+                                  Text(
+                                    "ยื่นขอรับทุน",
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                         ),
                       ],
-                    ),
-                  ),
+                    );
+                  },
                 ),
-
-                // ===== BOTTOM BAR =====
-                _BottomBar(scholarship: scholarship),
-              ],
-            );
-          },
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
-}
 
-class _BottomBar extends StatelessWidget {
-  final Scholarship scholarship;
-
-  const _BottomBar({super.key, required this.scholarship});
-
-  @override
-  Widget build(BuildContext context) {
+  /// ================= SECTION CARD =================
+  Widget _sectionCard({
+    required IconData icon,
+    required String title,
+    required Widget child,
+  }) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border(top: BorderSide(color: Colors.grey.shade200)),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 15,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 8,
-                  ),
-                ],
-              ),
-              child: Row(
-                children: const [
-                  CircleAvatar(
-                    radius: 16,
-                    backgroundColor: Colors.red,
-                    child: Icon(
-                      Icons.picture_as_pdf,
-                      color: Colors.white,
-                      size: 16,
-                    ),
-                  ),
-                  SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      'ใบสมัครขอรับทุน',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24),
-              ),
-            ),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) =>
-                      UploadDocumentPage(scholarshipId: scholarship.id),
+          Row(
+            children: [
+              Icon(icon, color: Colors.blueAccent),
+              const SizedBox(width: 10),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
                 ),
-              );
-            },
-            child: const Text(
-              'ยื่นทุน',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
               ),
-            ),
+            ],
           ),
+          const SizedBox(height: 14),
+          child,
         ],
       ),
     );
@@ -224,7 +372,7 @@ class _TabButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: isActive ? Colors.blueAccent : Colors.grey.shade300,
+          color: isActive ? Colors.blueAccent : Colors.grey.shade200,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(
@@ -235,6 +383,48 @@ class _TabButton extends StatelessWidget {
             fontWeight: FontWeight.w600,
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _ScheduleItem extends StatelessWidget {
+  final String title;
+  final String date;
+  final Color color;
+
+  const _ScheduleItem({
+    required this.title,
+    required this.date,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            flex: 2,
+            child: Text(
+              title,
+              style: const TextStyle(fontSize: 14, color: Colors.black87),
+            ),
+          ),
+          Expanded(
+            flex: 3,
+            child: Text(
+              date,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

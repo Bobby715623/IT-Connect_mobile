@@ -8,9 +8,12 @@ import 'calendar.dart';
 import 'table.dart';
 import 'notification.dart';
 import 'profile.dart';
+import 'newsfeed.dart';
 
 class MainNavigation extends StatefulWidget {
-  const MainNavigation({super.key});
+  final int userId;
+
+  const MainNavigation({super.key, required this.userId});
 
   @override
   State<MainNavigation> createState() => _MainNavigationState();
@@ -31,16 +34,18 @@ class _MainNavigationState extends State<MainNavigation> {
         setState(() => currentIndex = 7);
       },
     ),
-    CalendarPage(),
-    NewsPostPage(),
+    CalendarPage(userId: widget.userId),
+    TablePage(),
     NotificationPage(),
     ProfilePage(),
     ScholarshipPage(
+      userId: widget.userId,
       onGoHome: () {
         setState(() => currentIndex = 0);
       },
     ),
     ActivityPage(
+      userId: widget.userId,
       onGoHome: () {
         setState(() => currentIndex = 0);
       },

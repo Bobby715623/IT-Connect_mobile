@@ -1,3 +1,8 @@
+import 'package:flutter/material.dart';
+
+/// ===============================================
+/// ACTIVITY PORT
+/// ===============================================
 class ActivityPort {
   final int id;
   final String? portname;
@@ -5,9 +10,8 @@ class ActivityPort {
   final String? type;
   final DateTime? endDate;
   final String? status;
-
-  // ✅ เพิ่มตัวนี้
-  final List<Activity>? activities;
+  final int? hourofActivity;
+  final List<Activity> activities;
 
   ActivityPort({
     required this.id,
@@ -16,7 +20,8 @@ class ActivityPort {
     this.type,
     this.endDate,
     this.status,
-    this.activities, // ✅ เพิ่มใน constructor
+    this.hourofActivity,
+    required this.activities,
   });
 
   factory ActivityPort.fromJson(Map<String, dynamic> json) {
@@ -26,25 +31,29 @@ class ActivityPort {
       hourNeed: json['HourNeed'],
       type: json['Type'],
       endDate: json['EndDate'] != null ? DateTime.parse(json['EndDate']) : null,
-      status: json['status'],
-
-      // ✅ map relation Activity จาก backend
-      activities: json['Activity'] != null
-          ? (json['Activity'] as List).map((e) => Activity.fromJson(e)).toList()
-          : [],
+      status: json['Status'],
+      hourofActivity: json['HourofActivity'],
+      activities:
+          (json['Activity'] as List?)
+              ?.map((e) => Activity.fromJson(e))
+              .toList() ??
+          [],
     );
   }
 }
 
+/// ===============================================
+/// ACTIVITY
+/// ===============================================
 class Activity {
   final int id;
   final String? name;
   final String? description;
   final String? location;
   final int? hour;
-  final String? status;
+  final ActivityStatus status;
   final String? comment;
-  final List<ActivityEvidence>? evidences;
+  final List<ActivityEvidence> evidences;
 
   Activity({
     required this.id,
@@ -52,9 +61,9 @@ class Activity {
     this.description,
     this.location,
     this.hour,
-    this.status,
+    required this.status,
     this.comment,
-    this.evidences,
+    required this.evidences,
   });
 
   factory Activity.fromJson(Map<String, dynamic> json) {
@@ -64,17 +73,22 @@ class Activity {
       description: json['Description'],
       location: json['Location'],
       hour: json['HourofActivity'],
-      status: json['Status'],
+      status: ActivityStatusExtension.fromString(
+        json['Status'] ?? json['status'] ?? '',
+      ),
       comment: json['Comment'],
-      evidences: json['ActivityEvidence'] != null
-          ? (json['ActivityEvidence'] as List)
-                .map((e) => ActivityEvidence.fromJson(e))
-                .toList()
-          : [],
+      evidences:
+          (json['ActivityEvidence'] as List?)
+              ?.map((e) => ActivityEvidence.fromJson(e))
+              .toList() ??
+          [],
     );
   }
 }
 
+/// ===============================================
+/// ACTIVITY EVIDENCE
+/// ===============================================
 class ActivityEvidence {
   final int id;
   final String? picture;
@@ -83,5 +97,52 @@ class ActivityEvidence {
 
   factory ActivityEvidence.fromJson(Map<String, dynamic> json) {
     return ActivityEvidence(id: json['EvidenceID'], picture: json['Picture']);
+  }
+}
+
+/// ===============================================
+/// ENUM STATUS
+/// ===============================================
+enum ActivityStatus { waitForProcess, approve, reject }
+
+/// ===============================================
+/// EXTENSION
+/// ===============================================
+extension ActivityStatusExtension on ActivityStatus {
+  static ActivityStatus fromString(String value) {
+    final normalized = value.toLowerCase().replaceAll("_", "");
+
+    switch (normalized) {
+      case "approve":
+        return ActivityStatus.approve;
+      case "reject":
+        return ActivityStatus.reject;
+      case "waitforprocess":
+        return ActivityStatus.waitForProcess;
+      default:
+        return ActivityStatus.waitForProcess;
+    }
+  }
+
+  String get label {
+    switch (this) {
+      case ActivityStatus.approve:
+        return "Approved";
+      case ActivityStatus.reject:
+        return "Rejected";
+      case ActivityStatus.waitForProcess:
+        return "Waiting for approval";
+    }
+  }
+
+  Color get color {
+    switch (this) {
+      case ActivityStatus.approve:
+        return const Color(0xFF34C759);
+      case ActivityStatus.reject:
+        return const Color(0xFFFF3B30);
+      case ActivityStatus.waitForProcess:
+        return const Color(0xFFFF9500);
+    }
   }
 }

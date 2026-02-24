@@ -70,19 +70,17 @@ class _LoginPageState extends State<LoginPage> {
 
       // 4️⃣ Receive JWT
       final data = jsonDecode(response.body);
+
       final jwt = data['token'];
+      final userId = data['user']['UserID'];
 
-      debugPrint('JWT RECEIVED');
-
-      // 5️⃣ Save JWT (สำคัญมาก)
       await AuthService.saveToken(jwt);
 
-      // 6️⃣ Navigate to Home
       if (!mounted) return;
 
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const MainNavigation()),
+        MaterialPageRoute(builder: (_) => MainNavigation(userId: userId)),
       );
     } catch (e) {
       debugPrint('Login error: $e');

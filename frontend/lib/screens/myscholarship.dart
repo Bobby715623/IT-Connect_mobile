@@ -1,11 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:myproject/models/myscholarship.dart';
+import 'package:myproject/screens/navigation_bar.dart';
 import 'package:myproject/services/scholarshipApplication_service.dart';
+import 'myscholarship_detail_page.dart';
+import 'home.dart';
 
 class MyScholarshipPage extends StatefulWidget {
   final VoidCallback onGoHome;
+  final int userId;
 
-  const MyScholarshipPage({super.key, required this.onGoHome});
+  const MyScholarshipPage({
+    super.key,
+    required this.onGoHome,
+    required this.userId,
+  });
 
   @override
   State<MyScholarshipPage> createState() => _MyScholarshipPageState();
@@ -17,50 +25,51 @@ class _MyScholarshipPageState extends State<MyScholarshipPage> {
   @override
   void initState() {
     super.initState();
-    future = ScholarshipService.getMyHistory(3);
+    future = ScholarshipService.getMyHistory(widget.userId);
     // 👆 ใส่ userId จริงจาก login ตรงนี้
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF8F9FB),
       body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ===============================
-            // TABS
-            // ===============================
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 16),
+
+              /// ===== HEADER (เหมือนเดิม) =====
+              Row(
                 children: [
                   _TabButton(
                     title: 'ALL SCHOLARSHIP',
                     isActive: false,
                     onTap: () {
-                      Navigator.pop(context); // 👈 กลับไปหน้า ALL
+                      Navigator.pop(context);
                     },
                   ),
                   const SizedBox(width: 8),
-                  const _TabButton(
-                    title: 'MY SCHOLARSHIP',
-                    isActive: true, // 👈 หน้านี้ active
-                  ),
+                  const _TabButton(title: 'MY SCHOLARSHIP', isActive: true),
                 ],
               ),
-            ),
 
-            const SizedBox(height: 12),
+              const SizedBox(height: 12),
 
-            // ===== HOME =====
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: GestureDetector(
-                onTap: widget.onGoHome,
-                child: Row(
-                  children: const [
+              GestureDetector(
+                onTap: () {
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => MainNavigation(userId: widget.userId),
+                    ),
+                    (route) => false,
+                  );
+                },
+                child: const Row(
+                  children: [
                     Icon(Icons.arrow_back_ios, size: 14, color: Colors.blue),
                     SizedBox(width: 4),
                     Text(
@@ -74,48 +83,53 @@ class _MyScholarshipPageState extends State<MyScholarshipPage> {
                   ],
                 ),
               ),
-            ),
-            // ===============================
-            // LIST
-            // ===============================
-            Expanded(
-              child: FutureBuilder<List<ScholarshipApplication>>(
-                future: future,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
 
-                  if (snapshot.hasError) {
-                    return const Center(
-                      child: Text('เกิดข้อผิดพลาดในการโหลดข้อมูล'),
-                    );
-                  }
+              const SizedBox(height: 24),
 
-                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return const Center(
-                      child: Text(
-                        'ยังไม่เคยยื่นขอทุน',
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                    );
-                  }
-
-                  final list = snapshot.data!;
-
-                  return ListView.separated(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: list.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
-                    itemBuilder: (context, index) {
-                      final item = list[index];
-                      return _ScholarshipItem(item: item);
-                    },
-                  );
-                },
+              /// ===== TITLE =====
+              const Text(
+                "ทุนที่ฉันสมัคร",
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
-            ),
-          ],
+
+              const SizedBox(height: 16),
+
+              /// ===== LIST =====
+              Expanded(
+                child: FutureBuilder<List<ScholarshipApplication>>(
+                  future: future,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+
+                    if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      return const Center(
+                        child: Text(
+                          'ยังไม่เคยยื่นขอทุน',
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      );
+                    }
+
+                    final list = snapshot.data!;
+
+                    return ListView.separated(
+                      itemCount: list.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 14),
+                      itemBuilder: (context, index) {
+                        final item = list[index];
+                        return _ModernScholarshipCard(
+                          item: item,
+                          userId: widget.userId,
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -125,42 +139,77 @@ class _MyScholarshipPageState extends State<MyScholarshipPage> {
 /// ===============================
 /// ITEM
 /// ===============================
-class _ScholarshipItem extends StatelessWidget {
+class _ModernScholarshipCard extends StatelessWidget {
   final ScholarshipApplication item;
+  final int userId;
 
-  const _ScholarshipItem({required this.item});
+  const _ModernScholarshipCard({required this.item, required this.userId});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.grey.shade300),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.scholarshipTitle,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'ส่งเอกสารแล้ว ${item.submittedCount} รายการ',
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-              ],
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => MyScholarshipDetailPage(
+              applicationId: item.applicationID,
+              userId: userId,
             ),
           ),
-          _StatusBadge(status: item.status),
-        ],
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(22),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: Colors.blueAccent.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Icon(
+                Icons.school,
+                size: 20,
+                color: Colors.blueAccent,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.scholarshipTitle,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'ส่งเอกสารแล้ว ${item.submittedCount} รายการ',
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                ],
+              ),
+            ),
+            _ModernStatusBadge(status: item.status),
+          ],
+        ),
       ),
     );
   }
@@ -169,14 +218,14 @@ class _ScholarshipItem extends StatelessWidget {
 /// ===============================
 /// STATUS BADGE
 /// ===============================
-class _StatusBadge extends StatelessWidget {
+class _ModernStatusBadge extends StatelessWidget {
   final ApplyStatus status;
 
-  const _StatusBadge({required this.status});
+  const _ModernStatusBadge({required this.status});
 
   @override
   Widget build(BuildContext context) {
-    late Color bgColor;
+    Color bgColor;
 
     switch (status) {
       case ApplyStatus.inProgress:
@@ -194,17 +243,17 @@ class _StatusBadge extends StatelessWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: bgColor,
+        color: bgColor.withOpacity(0.12),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
         status.label,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 12,
+        style: TextStyle(
+          fontSize: 11,
           fontWeight: FontWeight.w600,
+          color: bgColor,
         ),
       ),
     );

@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import '../models/activity_port.dart';
 import '../services/activity_port_service.dart';
+import '../services/activity_post_service.dart';
 import 'add_activity_page.dart';
 import 'activity_detail_page.dart';
+import 'activity_history_page.dart';
+import 'activity_post_page.dart';
 
 class ActivityPortDetailPage extends StatefulWidget {
   final int portId;
@@ -15,19 +18,21 @@ class ActivityPortDetailPage extends StatefulWidget {
 
 class _ActivityPortDetailPageState extends State<ActivityPortDetailPage> {
   late Future<ActivityPort> _future;
+  late Future<List<dynamic>> _postFuture;
 
-  int selectedTab = 0; // 0 = MY, 1 = ALL, 2 = HISTORY
+  int selectedTab = 0; // 0 = MY, 1 = ALL
 
   @override
   void initState() {
     super.initState();
     _future = ActivityPortService.fetchSingle(widget.portId);
+    _postFuture = ActivityPostService.fetchPosts();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: const Color(0xFFF8F9FB),
       body: SafeArea(
         child: FutureBuilder<ActivityPort>(
           future: _future,
@@ -43,23 +48,16 @@ class _ActivityPortDetailPageState extends State<ActivityPortDetailPage> {
             List<Activity> filteredActivities;
 
             if (selectedTab == 0) {
-              // MY ACTIVITY → approve
               filteredActivities = activities
-                  .where((a) => a.status == "approve")
-                  .toList();
-            } else if (selectedTab == 1) {
-              // 🔥 HISTORY (reject)
-              filteredActivities = activities
-                  .where((a) => a.status == "reject")
+                  .where((a) => a.status == ActivityStatus.approve)
                   .toList();
             } else {
-              // 🔥 ACTIVITY (ทั้งหมด)
               filteredActivities = activities;
             }
 
             /// 🔥 progress นับเฉพาะ approve
             int totalHour = activities
-                .where((a) => a.status == "approve")
+                .where((a) => a.status == ActivityStatus.approve)
                 .fold(0, (sum, a) => sum + (a.hour ?? 0));
 
             double percent = 0;
@@ -75,33 +73,39 @@ class _ActivityPortDetailPageState extends State<ActivityPortDetailPage> {
                   /// 🔥 TABS
                   Row(
                     children: [
+                      const _TabButton(title: 'MY ACTIVITY', isActive: true),
+                      const SizedBox(width: 8),
                       _TabButton(
-                        title: "MY ACTIVITY",
-                        isActive: selectedTab == 0,
+                        title: 'ACTIVITY',
+                        isActive: false,
                         onTap: () {
-                          setState(() => selectedTab = 0);
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  ActivityPostPage(portId: widget.portId),
+                            ),
+                          );
                         },
                       ),
                       const SizedBox(width: 8),
                       _TabButton(
-                        title: "ACTIVITY",
-                        isActive: selectedTab == 1,
+                        title: 'HISTORY',
+                        isActive: false,
                         onTap: () {
-                          setState(() => selectedTab = 1);
-                        },
-                      ),
-                      const SizedBox(width: 8),
-                      _TabButton(
-                        title: "HISTORY",
-                        isActive: selectedTab == 2,
-                        onTap: () {
-                          setState(() => selectedTab = 2);
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  ActivityHistoryPage(portId: widget.portId),
+                            ),
+                          );
                         },
                       ),
                     ],
                   ),
 
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 12),
 
                   /// BACK
                   Align(
@@ -131,48 +135,116 @@ class _ActivityPortDetailPageState extends State<ActivityPortDetailPage> {
 
                   const SizedBox(height: 20),
 
-                  /// CIRCLE
+                  /// CIRCLE (Green + Grey Overlay Style)
                   if (selectedTab == 0) ...[
-                    SizedBox(
-                      width: 230,
-                      height: 230,
-                      child: Stack(
-                        alignment: Alignment.center,
+                    Center(
+                      child: SizedBox(
+                        width: 230,
+                        height: 230,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            /// 🔹 วงพื้นหลังสีเทาเต็ม 100%
+                            SizedBox(
+                              width: 230,
+                              height: 230,
+                              child: CircularProgressIndicator(
+                                value: 1,
+                                strokeWidth: 24,
+                                backgroundColor: const Color(0xFFE5E5EA),
+                                valueColor: const AlwaysStoppedAnimation<Color>(
+                                  Color(0xFFE5E5EA),
+                                ),
+                              ),
+                            ),
+
+                            /// 🔹 วงสีเขียวทับด้านบน
+                            TweenAnimationBuilder<double>(
+                              tween: Tween(begin: 0, end: percent),
+                              duration: const Duration(milliseconds: 800),
+                              curve: Curves.easeOutCubic,
+                              builder: (context, value, child) {
+                                return SizedBox(
+                                  width: 230,
+                                  height: 230,
+                                  child: CircularProgressIndicator(
+                                    value: value,
+                                    strokeWidth: 24,
+                                    backgroundColor: Colors.transparent,
+                                    valueColor:
+                                        const AlwaysStoppedAnimation<Color>(
+                                          Color(0xFF34C759), // iOS Green
+                                        ),
+                                  ),
+                                );
+                              },
+                            ),
+
+                            /// 🔹 ตัวเลขกลางวง
+                            Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  "$totalHour",
+                                  style: const TextStyle(
+                                    fontSize: 56,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: -1,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  "/ ${port.hourNeed ?? 0} ชั่วโมง",
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    color: Color(0xFF8E8E93),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+
+                  const SizedBox(height: 10),
+
+                  //ปุ่มเพิ่มกิจกรรม
+                  if (selectedTab == 0) ...[
+                    const SizedBox(height: 18),
+
+                    GestureDetector(
+                      onTap: () async {
+                        final result = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                CreateActivityPage(portId: widget.portId),
+                          ),
+                        );
+
+                        if (result == true) {
+                          setState(() {
+                            selectedTab = 2;
+                            _future = ActivityPortService.fetchSingle(
+                              widget.portId,
+                            );
+                          });
+                        }
+                      },
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          /// วงพื้นหลังเทา
-                          SizedBox(
-                            width: 230,
-                            height: 230,
-                            child: CircularProgressIndicator(
-                              value: 1,
-                              strokeWidth: 26,
-                              backgroundColor: Colors.grey.shade300,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.grey.shade300,
-                              ),
-                            ),
-                          ),
-
-                          /// วง progress สีเขียว
-                          SizedBox(
-                            width: 230,
-                            height: 230,
-                            child: CircularProgressIndicator(
-                              value: percent,
-                              strokeWidth: 26,
-                              backgroundColor: Colors.transparent,
-                              valueColor: const AlwaysStoppedAnimation<Color>(
-                                Colors.green,
-                              ),
-                            ),
-                          ),
-
-                          /// ตัวเลขตรงกลาง
+                          Icon(Icons.add, size: 18, color: Color(0xFF007AFF)),
+                          SizedBox(width: 6),
                           Text(
-                            "$totalHour",
-                            style: const TextStyle(
-                              fontSize: 60,
-                              fontWeight: FontWeight.bold,
+                            "เพิ่มกิจกรรม",
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xFF007AFF),
                             ),
                           ),
                         ],
@@ -184,113 +256,217 @@ class _ActivityPortDetailPageState extends State<ActivityPortDetailPage> {
 
                   /// LIST
                   Expanded(
-                    child: ListView.builder(
-                      itemCount: filteredActivities.length,
-                      itemBuilder: (context, index) {
-                        final a = filteredActivities[index];
-                        final status = a.status ?? "waitforprocess";
+                    child: selectedTab == 1
+                        ? FutureBuilder<List<dynamic>>(
+                            future: _postFuture,
+                            builder: (context, snapshot) {
+                              if (!snapshot.hasData) {
+                                return const Center(
+                                  child: CircularProgressIndicator(),
+                                );
+                              }
 
-                        Color badgeColor;
+                              final posts = snapshot.data!;
 
-                        switch (status) {
-                          case "approve":
-                            badgeColor = Colors.green.shade200;
-                            break;
-                          case "reject":
-                            badgeColor = Colors.red.shade200;
-                            break;
-                          default:
-                            badgeColor = Colors.orange.shade200;
-                        }
+                              return ListView.builder(
+                                itemCount: posts.length,
+                                itemBuilder: (context, index) {
+                                  final p = posts[index];
 
-                        return InkWell(
-                          borderRadius: BorderRadius.circular(20),
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => ActivityDetailPage(activity: a),
-                              ),
-                            );
-                          },
-                          child: Container(
-                            margin: const EdgeInsets.only(bottom: 12),
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(20),
-                              boxShadow: const [
-                                BoxShadow(color: Colors.black12, blurRadius: 5),
-                              ],
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    a.name ?? "",
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w500,
+                                  return Container(
+                                    margin: const EdgeInsets.only(bottom: 18),
+                                    padding: const EdgeInsets.all(18),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(26),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.04),
+                                          blurRadius: 25,
+                                          offset: const Offset(0, 12),
+                                        ),
+                                      ],
                                     ),
-                                  ),
-                                ),
-                                Text(
-                                  "${a.hour ?? 0}",
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(width: 10),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 6,
-                                  ),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: const [
+                                            CircleAvatar(
+                                              radius: 16,
+                                              backgroundColor: Color(
+                                                0xFFE5E5EA,
+                                              ),
+                                              child: Icon(
+                                                Icons.person,
+                                                size: 16,
+                                                color: Colors.black54,
+                                              ),
+                                            ),
+                                            SizedBox(width: 8),
+                                            Text(
+                                              "STAFF",
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w600,
+                                                color: Color(0xFF8E8E93),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 14),
+                                        Text(
+                                          p["Title"] ?? "",
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          p["Description"] ?? "",
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            color: Color(0xFF3C3C43),
+                                          ),
+                                        ),
+                                        if (p["Picture"] != null &&
+                                            p["Picture"]
+                                                .toString()
+                                                .isNotEmpty) ...[
+                                          const SizedBox(height: 14),
+                                          ClipRRect(
+                                            borderRadius: BorderRadius.circular(
+                                              18,
+                                            ),
+                                            child: Image.network(
+                                              p["Picture"],
+                                              height: 180,
+                                              width: double.infinity,
+                                              fit: BoxFit.cover,
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  );
+                                },
+                              );
+                            },
+                          )
+                        : ListView.builder(
+                            itemCount: filteredActivities.length,
+                            itemBuilder: (context, index) {
+                              final a = filteredActivities[index];
+                              final status = a.status;
+                              final statusColor = status.color;
+                              final statusLabel = status.label;
+
+                              return InkWell(
+                                borderRadius: BorderRadius.circular(24),
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          ActivityDetailPage(activityId: a.id!),
+                                    ),
+                                  );
+                                },
+                                child: Container(
+                                  margin: const EdgeInsets.only(bottom: 14),
+                                  padding: const EdgeInsets.all(18),
                                   decoration: BoxDecoration(
-                                    color: badgeColor,
-                                    borderRadius: BorderRadius.circular(20),
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(24),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.04),
+                                        blurRadius: 25,
+                                        offset: const Offset(0, 12),
+                                      ),
+                                    ],
                                   ),
-                                  child: Text(
-                                    status,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w500,
-                                    ),
+                                  child: Row(
+                                    children: [
+                                      /// LEFT SIDE
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              a.name ?? "",
+                                              style: const TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 8),
+
+                                            /// STATUS BADGE (เด่นขึ้น)
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 10,
+                                                    vertical: 4,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color: statusColor.withOpacity(
+                                                  0.12,
+                                                ),
+                                                borderRadius:
+                                                    BorderRadius.circular(14),
+                                              ),
+                                              child: Text(
+                                                statusLabel,
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: statusColor,
+                                                  letterSpacing: 0.5,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+
+                                      /// RIGHT SIDE (HOUR เด่นขึ้น)
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
+                                        children: [
+                                          Text(
+                                            "${a.hour ?? 0}",
+                                            style: const TextStyle(
+                                              fontSize: 26,
+                                              fontWeight: FontWeight.w800,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          const Text(
+                                            "hrs",
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: Color(0xFF8E8E93),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
                                   ),
                                 ),
-                              ],
-                            ),
+                              );
+                            },
                           ),
-                        );
-                      },
-                    ),
                   ),
                 ],
               ),
             );
           },
         ),
-      ),
-
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.blue,
-        onPressed: () async {
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => CreateActivityPage(portId: widget.portId),
-            ),
-          );
-
-          if (result == true) {
-            // 🔥 สลับไปหน้า HISTORY (สมมุติ index = 2)
-            setState(() {
-              selectedTab = 2; // 👈 สำคัญ
-              _future = ActivityPortService.fetchSingle(widget.portId);
-            });
-          }
-        },
-        child: const Icon(Icons.add),
       ),
     );
   }
@@ -311,7 +487,7 @@ class _TabButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: isActive ? Colors.blue : Colors.grey.shade300,
+          color: isActive ? Colors.blueAccent : Colors.grey.shade300,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(

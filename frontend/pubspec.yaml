@@ -43,6 +43,12 @@ dependencies:
   url_launcher: ^6.2.5
   flutter_secure_storage: ^9.0.0
   image_picker: ^1.0.4
+  intl: ^0.20.2
+  syncfusion_flutter_pdfviewer: ^32.2.7
+  syncfusion_flutter_core: ^32.2.7
+  path_provider: ^2.1.2
+  dio: ^5.4.0
+  open_filex: ^4.3.2
 
 
 dev_dependencies:

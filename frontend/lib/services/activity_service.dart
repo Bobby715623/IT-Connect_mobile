@@ -1,11 +1,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../models/activity_port.dart';
 
-class ActivityPortService {
+class ActivityService {
   static const String baseUrl = "http://10.0.2.2:3000";
 
-  static Future<void> createActivity({
+  static Future<int> createActivity({
     required int portId,
     required String activityName,
     required String description,
@@ -30,5 +29,8 @@ class ActivityPortService {
     if (response.statusCode != 200) {
       throw Exception("Failed to create activity");
     }
+
+    final data = jsonDecode(response.body);
+    return data["ActivityID"];
   }
 }

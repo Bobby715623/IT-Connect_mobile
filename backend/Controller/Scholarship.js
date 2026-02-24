@@ -106,12 +106,8 @@ exports.removeScholarship = async (req, res) => {
 //มอสแก้
 exports.applyScholarship = async (req, res) => {
   try {
-    console.log('BODY:', req.body);
-    console.log('FILES:', req.files);
-    console.log('USER:', req.user);
-
     const { ScholarshipID } = req.body;
-    const userId = req.user.userId; // ⭐ ใช้จาก token
+    const userId = req.user.userId;
 
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ message: 'No files uploaded' });
@@ -128,7 +124,7 @@ exports.applyScholarship = async (req, res) => {
     const application = await prisma.scholarshipApplication.create({
       data: {
         ScholarshipID: Number(ScholarshipID),
-        UserID: Number(userId), // ⭐ แก้ตรงนี้
+        UserID: Number(userId),
         ApplicationDate: new Date(),
         Status: 'waitingforprocess',
         ScholarshipSubmission: {
@@ -141,7 +137,16 @@ exports.applyScholarship = async (req, res) => {
     });
 
     res.status(201).json(application);
+
   } catch (err) {
+
+    // 👇 เพิ่มบล็อกนี้
+    if (err.code === 'P2002') {
+      return res.status(400).json({
+        message: 'คุณได้สมัครทุนนี้ไปแล้ว'
+      });
+    }
+
     console.error('🔥 APPLY ERROR:', err);
     res.status(500).json({ message: 'Server Error', error: err.message });
   }

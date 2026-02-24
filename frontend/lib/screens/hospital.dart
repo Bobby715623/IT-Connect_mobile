@@ -38,15 +38,17 @@ class _HospitalPageState extends State<HospitalPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF8F9FB),
       body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ===== TABS =====
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 16),
+
+              /// ===== HEADER =====
+              Row(
                 children: [
                   _TabButton(
                     title: 'DETAIL',
@@ -57,12 +59,10 @@ class _HospitalPageState extends State<HospitalPage> {
                   const _TabButton(title: 'HOSPITAL', isActive: true),
                 ],
               ),
-            ),
 
-            // ===== BACK =====
-            Padding(
-              padding: const EdgeInsets.only(left: 16),
-              child: GestureDetector(
+              const SizedBox(height: 12),
+
+              GestureDetector(
                 onTap: () => Navigator.pop(context),
                 child: const Row(
                   children: [
@@ -79,98 +79,95 @@ class _HospitalPageState extends State<HospitalPage> {
                   ],
                 ),
               ),
-            ),
 
-            const SizedBox(height: 12),
+              const SizedBox(height: 20),
 
-            // ===== SEARCH =====
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Container(
-                height: 44,
+              // ===== SEARCH =====
+              Container(
+                height: 48,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF1F1F1),
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.04),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
                 child: TextField(
                   controller: _searchController,
                   onChanged: _onSearch,
-                  decoration: InputDecoration(
-                    hintText: 'Search Hospital',
-                    prefixIcon: const Icon(Icons.search),
-                    suffixIcon: _searchController.text.isNotEmpty
-                        ? GestureDetector(
-                            onTap: () {
-                              _searchController.clear();
-                              _onSearch('');
-                              setState(() {});
-                            },
-                            child: const Icon(Icons.close),
-                          )
-                        : null,
+                  decoration: const InputDecoration(
+                    hintText: 'Search hospital or province',
+                    prefixIcon: Icon(Icons.search, size: 20),
                     border: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(vertical: 12),
                   ),
                 ),
               ),
-            ),
 
-            const SizedBox(height: 16),
+              const SizedBox(height: 16),
 
-            // ===== LIST =====
-            Expanded(
-              child: FutureBuilder<List<Hospital>>(
-                future: _future,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
+              // ===== LIST =====
+              Expanded(
+                child: FutureBuilder<List<Hospital>>(
+                  future: _future,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
 
-                  if (snapshot.hasError) {
-                    return Center(child: Text(snapshot.error.toString()));
-                  }
+                    if (snapshot.hasError) {
+                      return Center(child: Text(snapshot.error.toString()));
+                    }
 
-                  if (_allHospitals.isEmpty) {
-                    _allHospitals = snapshot.data!;
-                    _filteredHospitals = _allHospitals;
-                  }
+                    if (_allHospitals.isEmpty) {
+                      _allHospitals = snapshot.data!;
+                      _filteredHospitals = _allHospitals;
+                    }
 
-                  if (_filteredHospitals.isEmpty) {
-                    return const Center(child: Text('ไม่พบโรงพยาบาลที่ค้นหา'));
-                  }
-
-                  return ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: _filteredHospitals.length,
-                    itemBuilder: (context, index) {
-                      final h = _filteredHospitals[index];
-
-                      return HospitalCard(
-                        name: h.name,
-                        subtitle: h.province ?? '-',
-                        onTap: () {
-                          if (h.placeId != null && h.placeId!.isNotEmpty) {
-                            openGoogleMapsWithPlaceId(h.placeId!);
-                          } else if (h.latitude != null &&
-                              h.longitude != null) {
-                            openGoogleMaps(
-                              h.latitude!,
-                              h.longitude!,
-                            ); // fallback
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('ไม่มีข้อมูลสถานที่'),
-                              ),
-                            );
-                          }
-                        },
+                    if (_filteredHospitals.isEmpty) {
+                      return const Center(
+                        child: Text('ไม่พบโรงพยาบาลที่ค้นหา'),
                       );
-                    },
-                  );
-                },
+                    }
+
+                    return ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: _filteredHospitals.length,
+                      itemBuilder: (context, index) {
+                        final h = _filteredHospitals[index];
+
+                        return HospitalCard(
+                          name: h.name,
+                          subtitle: h.province ?? '-',
+                          onTap: () {
+                            if (h.placeId != null && h.placeId!.isNotEmpty) {
+                              openGoogleMapsWithPlaceId(h.placeId!);
+                            } else if (h.latitude != null &&
+                                h.longitude != null) {
+                              openGoogleMaps(
+                                h.latitude!,
+                                h.longitude!,
+                              ); // fallback
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('ไม่มีข้อมูลสถานที่'),
+                                ),
+                              );
+                            }
+                          },
+                        );
+                      },
+                    );
+                  },
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -224,17 +221,42 @@ class HospitalCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(22),
       onTap: onTap,
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey.shade300),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(22),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
+            ),
+          ],
         ),
         child: Row(
           children: [
+            /// Icon Circle
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: Colors.blueAccent.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Icon(
+                Icons.local_hospital,
+                size: 20,
+                color: Colors.blueAccent,
+              ),
+            ),
+
+            const SizedBox(width: 14),
+
+            /// Text
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -242,19 +264,20 @@ class HospitalCard extends StatelessWidget {
                   Text(
                     name,
                     style: const TextStyle(
-                      fontSize: 14,
+                      fontSize: 15,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6),
                   Text(
                     subtitle,
-                    style: const TextStyle(color: Colors.grey, fontSize: 12),
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.location_on_outlined, color: Colors.blue),
+
+            const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
           ],
         ),
       ),

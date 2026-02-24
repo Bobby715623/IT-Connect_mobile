@@ -1,5 +1,20 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+//------------เพิ่มไว้เก็บรูป-------------//
+const multer = require('multer');
+const path = require('path');
+
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, 'uploads/');
+    },
+    filename: function (req, file, cb) {
+        cb(null, Date.now() + path.extname(file.originalname));
+    }
+});
+
+const upload = multer({ storage: storage });
+//------------จบเพิ่มไว้เก็บรูป-------------// มอสเพิ่ม
 
 exports.activitypostlist = async (req, res) => {
     try {
@@ -42,7 +57,7 @@ exports.singleactivitypost = async (req, res) => {
 exports.createactivitypost = async (req, res) => {
     try {
         const { 
-            Title, Description, HourofActivity, Location, DatetimeofActivity, OfficerID 
+            Title, Description, HourofActivity, Location, DatetimeofActivity, Picture, OfficerID , 
         } = req.body;
 
         if (!OfficerID) return res.status(400).send('OfficerID is required');
@@ -53,6 +68,7 @@ exports.createactivitypost = async (req, res) => {
                 Location: Location,
                 HourofActivity: HourofActivity ? Number(HourofActivity) : null,
                 DatetimeofActivity: DatetimeofActivity ? new Date(DatetimeofActivity) : null,
+                Picture: Picture || null, //มอสเพิ่มมา
                 Officer: {
                     connect: {
                         OfficerID: Number(OfficerID)
@@ -301,6 +317,31 @@ exports.followactivity = async (req, res) => {
             }
         });
         res.json(newFollow);
+    } catch (err) {
+        console.log(err);
+        res.status(500).json({ message: "Server Error" });
+    }
+};
+
+//------มอสเพิ่ม ไว้เก็บรูป--------//
+exports.uploadEvidence = async (req, res) => {
+    try {
+        const { activityId } = req.params;
+
+        if (!req.files || req.files.length === 0) {
+            return res.status(400).json({ message: "No files uploaded" });
+        }
+
+        const evidenceData = req.files.map(file => ({
+            Picture: file.filename,
+            ActivityID: Number(activityId)
+        }));
+
+        await prisma.activityEvidence.createMany({
+            data: evidenceData
+        });
+
+        res.json({ message: "Evidence uploaded successfully" });
     } catch (err) {
         console.log(err);
         res.status(500).json({ message: "Server Error" });

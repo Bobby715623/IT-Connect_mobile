@@ -24,4 +24,26 @@ class ScholarshipService {
     final List data = jsonDecode(response.body);
     return data.map((e) => ScholarshipApplication.fromJson(e)).toList();
   }
+
+  static Future<ScholarshipApplication> getApplicationDetail(
+    int applicationId,
+  ) async {
+    final token = await AuthService.getToken();
+
+    final response = await http.get(
+      Uri.parse('$baseUrl/api/scholarship/application/$applicationId'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('โหลดรายละเอียดไม่สำเร็จ (${response.statusCode})');
+    }
+
+    final data = jsonDecode(response.body);
+
+    return ScholarshipApplication.fromJson(data);
+  }
 }

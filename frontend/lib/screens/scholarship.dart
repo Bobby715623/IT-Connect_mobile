@@ -6,8 +6,13 @@ import 'package:myproject/services/scholarship_service.dart';
 
 class ScholarshipPage extends StatefulWidget {
   final VoidCallback onGoHome;
+  final int userId;
 
-  const ScholarshipPage({super.key, required this.onGoHome});
+  const ScholarshipPage({
+    super.key,
+    required this.userId,
+    required this.onGoHome,
+  });
 
   @override
   State<ScholarshipPage> createState() => _ScholarshipPageState();
@@ -25,14 +30,16 @@ class _ScholarshipPageState extends State<ScholarshipPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF8F9FB),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ===== Tabs =====
+              const SizedBox(height: 16),
+
+              /// ===== Tabs (เหมือนเดิม) =====
               Row(
                 children: [
                   const _TabButton(title: 'ALL SCHOLARSHIP', isActive: true),
@@ -45,6 +52,7 @@ class _ScholarshipPageState extends State<ScholarshipPage> {
                         context,
                         MaterialPageRoute(
                           builder: (_) => MyScholarshipPage(
+                            userId: widget.userId,
                             onGoHome: () {
                               Navigator.pop(context);
                             },
@@ -58,34 +66,28 @@ class _ScholarshipPageState extends State<ScholarshipPage> {
 
               const SizedBox(height: 12),
 
-              // ===== HOME =====
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                child: GestureDetector(
-                  onTap: widget.onGoHome,
-                  child: Row(
-                    children: const [
-                      Icon(Icons.arrow_back_ios, size: 14, color: Colors.blue),
-                      SizedBox(width: 4),
-                      Text(
-                        'HOME',
-                        style: TextStyle(
-                          color: Colors.blueAccent,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
+              /// ===== HOME =====
+              GestureDetector(
+                onTap: widget.onGoHome,
+                child: const Row(
+                  children: [
+                    Icon(Icons.arrow_back_ios, size: 14, color: Colors.blue),
+                    SizedBox(width: 4),
+                    Text(
+                      'HOME',
+                      style: TextStyle(
+                        color: Colors.blueAccent,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
 
-              const SizedBox(height: 8),
+              const SizedBox(height: 20),
 
-              // ===== Scholarship List (API) =====
+              /// ===== LIST =====
               Expanded(
                 child: FutureBuilder<List<Scholarship>>(
                   future: _scholarshipsFuture,
@@ -113,14 +115,17 @@ class _ScholarshipPageState extends State<ScholarshipPage> {
                       itemCount: scholarships.length,
                       itemBuilder: (context, index) {
                         final s = scholarships[index];
-                        return _ScholarshipItem(
-                          title: s.name,
+
+                        return _ScholarshipCard(
+                          scholarship: s,
                           onTap: () {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) =>
-                                    ScholarshipDetailPage(scholarshipId: s.id),
+                                builder: (_) => ScholarshipDetailPage(
+                                  scholarshipId: s.id,
+                                  userId: widget.userId,
+                                ),
                               ),
                             );
                           },
@@ -138,25 +143,97 @@ class _ScholarshipPageState extends State<ScholarshipPage> {
   }
 }
 
-class _ScholarshipItem extends StatelessWidget {
-  final String title;
-  final VoidCallback? onTap;
+class _ScholarshipCard extends StatelessWidget {
+  final Scholarship scholarship;
+  final VoidCallback onTap;
 
-  const _ScholarshipItem({required this.title, this.onTap});
+  const _ScholarshipCard({required this.scholarship, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      borderRadius: BorderRadius.circular(20),
       onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
       child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(16),
+        margin: const EdgeInsets.only(bottom: 18),
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey.shade300),
+          color: Colors.white,
           borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
+            ),
+          ],
         ),
-        child: Text(title, style: const TextStyle(fontSize: 14)),
+        child: Row(
+          children: [
+            /// Icon minimal
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: Colors.blueAccent.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Icon(
+                Icons.school,
+                color: Colors.blueAccent,
+                size: 20,
+              ),
+            ),
+
+            const SizedBox(width: 16),
+
+            /// Text section
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    scholarship.name,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    scholarship.description,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 13, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 10),
+
+                  /// Hour chip
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Text(
+                      "${scholarship.activityHourNeeded} ชั่วโมงกิจกรรม",
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.green,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
+          ],
+        ),
       ),
     );
   }
@@ -176,7 +253,7 @@ class _TabButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: isActive ? Colors.blueAccent : Colors.grey.shade300,
+          color: isActive ? Colors.blueAccent : Colors.grey.shade200,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(
