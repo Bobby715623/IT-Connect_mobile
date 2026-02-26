@@ -298,7 +298,7 @@ model ScholarshipSubmission {
 
 model Welfare {
   WelfareID    Int           @id @default(autoincrement())
-  WelfareType  WelfareType   @unique
+  WelfareType  WelfareType   
   Title        String
   Description  String?       @db.Text
   CoverImage   String?

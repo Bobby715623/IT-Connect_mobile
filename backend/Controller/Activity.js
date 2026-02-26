@@ -285,17 +285,37 @@ exports.updateactivity = async (req, res) => {
     }
 };
 exports.removeactivity = async (req, res) => {
-    try {
-        const { activityId } = req.params;
-        await prisma.activity.delete({
-            where: { ActivityID: Number(activityId) }
-        });
-        res.send("Activity Deleted");
-    } catch (err) {
-        console.log(err);
-        res.status(500).json({ message: "Server Error" });
+  try {
+    const { activityId } = req.params;
+
+    const activity = await prisma.activity.findUnique({
+      where: { ActivityID: Number(activityId) }
+    });
+
+    if (!activity) {
+      return res.status(404).json({ message: "Activity not found" });
     }
+
+    // ✅ เช็ค enum ให้ตรงกับ Prisma
+    if (activity.Status !== "waitforprocess") {
+      return res.status(400).json({
+        message: "Cannot delete activity after approval"
+      });
+    }
+
+    await prisma.activity.delete({
+      where: { ActivityID: Number(activityId) }
+    });
+
+    res.json({ message: "Activity Deleted Successfully" });
+
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ message: "Server Error" });
+  }
 };
+//มอสแก้ remove นะ
+
 exports.followactivity = async (req, res) => {
     try {
         const { activitypostId } = req.params;

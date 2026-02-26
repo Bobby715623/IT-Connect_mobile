@@ -151,6 +151,8 @@ class _MyScholarshipDetailPageState extends State<MyScholarshipDetailPage> {
                     }
 
                     final data = snapshot.data!;
+                    final bool canDelete =
+                        data.status == "Waiting for approval";
 
                     return ListView(
                       children: [

@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const { infowelfare, welfarelist,createwelfare,editwelfare,removewelfare,getScholarshipWelfare} = require('../Controller/Welfare');
+const { infowelfare, welfarelist,createwelfare,editwelfare,removewelfare,getWelfareByType } = require('../Controller/Welfare');
 
-router.get('/welfare/scholarship', getScholarshipWelfare);
+router.get('/type/:type', getWelfareByType);
 
 router.get('/Welfare',welfarelist);
 router.get('/Welfare/:welfareId',infowelfare);

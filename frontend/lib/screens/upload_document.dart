@@ -287,27 +287,14 @@ class _UploadDocumentPageState extends State<UploadDocumentPage> {
                     const SizedBox(height: 8),
 
                     GestureDetector(
-                      onTap: () async {
-                        try {
-                          final welfare =
-                              await WelfareService.fetchScholarshipWelfare();
-
-                          if (welfare != null && context.mounted) {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    WelfareTypePage(welfare: welfare),
-                              ),
-                            );
-                          }
-                        } catch (e) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text("ไม่สามารถโหลดรายละเอียดได้"),
-                            ),
-                          );
-                        }
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                const WelfareTypePage(type: "scholarship"),
+                          ),
+                        );
                       },
                       child: const Row(
                         mainAxisAlignment: MainAxisAlignment.center,

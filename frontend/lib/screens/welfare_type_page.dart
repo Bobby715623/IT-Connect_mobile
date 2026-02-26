@@ -1,31 +1,81 @@
 import 'package:flutter/material.dart';
+import '../services/welfare_service.dart';
 import '../models/welfare.dart';
+import 'welfare_detail_page.dart';
 import 'hospital.dart';
-import 'pdf_preview.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'hospital.dart';
-import 'pdf_preview.dart';
 
-class WelfareTypePage extends StatelessWidget {
-  final Welfare welfare;
+class WelfareTypePage extends StatefulWidget {
+  final String type;
 
-  const WelfareTypePage({super.key, required this.welfare});
+  const WelfareTypePage({super.key, required this.type});
+
+  @override
+  State<WelfareTypePage> createState() => _WelfareTypePageState();
+}
+
+class _WelfareTypePageState extends State<WelfareTypePage> {
+  List<Welfare> welfareList = [];
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchData();
+  }
+
+  Future<void> fetchData() async {
+    final data = await WelfareService.getByType(widget.type);
+    setState(() {
+      welfareList = data;
+      isLoading = false;
+    });
+  }
+
+  String _formatTitle(String type) {
+    switch (type) {
+      case "scholarship":
+        return "SCHOLARSHIP";
+      case "healthcare":
+        return "HEALTHCARE";
+      case "petition":
+        return "PETITION";
+      case "registercourse":
+        return "REGISTER COURSE";
+      default:
+        return type.toUpperCase();
+    }
+  }
+
+  IconData _getTypeIcon(String type) {
+    switch (type) {
+      case "healthcare":
+        return Icons.add_box_outlined;
+      case "scholarship":
+        return Icons.school_outlined;
+      case "registercourse":
+        return Icons.assignment_outlined;
+      case "petition":
+        return Icons.description_outlined;
+      default:
+        return Icons.insert_drive_file_outlined;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final isHealthcare = welfare.type == "healthcare";
+    final bool isHealthcare = widget.type == "healthcare";
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FB),
       body: SafeArea(
-        child: SingleChildScrollView(
+        child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 24),
 
-              /// BACK BUTTON
+              /// BACK
               GestureDetector(
                 onTap: () => Navigator.pop(context),
                 child: const Row(
@@ -49,134 +99,137 @@ class WelfareTypePage extends StatelessWidget {
                 ),
               ),
 
-              const SizedBox(height: 8),
-
-              /// COVER IMAGE
-              if (welfare.coverImage != null)
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: Image.network(
-                    welfare.coverImage!,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-
-              const SizedBox(height: 8),
-
-              /// TITLE
-              Text(
-                welfare.title,
-                style: const TextStyle(
-                  color: Colors.blueAccent,
-                  fontSize: 26,
-                  fontWeight: FontWeight.w600,
-                  height: 1.3,
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              /// DESCRIPTION
-              if (welfare.description != null)
-                Text(
-                  welfare.description!,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    height: 1.8,
-                    color: Colors.black87,
-                  ),
-                ),
-
-              const SizedBox(height: 40),
-
-              /// FILE SECTION TITLE
-              if (welfare.files.isNotEmpty)
-                const Text(
-                  "DOCUMENTS",
-                  style: TextStyle(
-                    fontSize: 13,
-                    letterSpacing: 1.2,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black54,
-                  ),
-                ),
-
               const SizedBox(height: 20),
 
-              /// FILE LIST
+              /// HEADER (TITLE)
               Column(
-                children: welfare.files.map((file) {
-                  return Column(children: [_buildDocumentRow(context, file)]);
-                }).toList(),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _formatTitle(widget.type),
+                    style: const TextStyle(
+                      fontSize: 30,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black87,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.blueAccent,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ],
               ),
 
-              /// HOSPITAL SECTION (เฉพาะ healthcare)
-              if (isHealthcare) _buildHospitalSection(context),
+              const SizedBox(height: 36),
 
-              const SizedBox(height: 40),
+              /// CONTENT
+              Expanded(
+                child: isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : welfareList.isEmpty
+                    ? const Center(
+                        child: Text(
+                          "No data available",
+                          style: TextStyle(color: Colors.black54),
+                        ),
+                      )
+                    : ListView(
+                        children: [
+                          ...welfareList.map((item) {
+                            return GestureDetector(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        WelfareDetailPage(welfare: item),
+                                  ),
+                                );
+                              },
+                              child: Container(
+                                margin: const EdgeInsets.only(bottom: 18),
+                                padding: const EdgeInsets.all(18),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(20),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.04),
+                                      blurRadius: 12,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    /// ICON
+                                    Container(
+                                      padding: const EdgeInsets.all(10),
+                                      decoration: BoxDecoration(
+                                        color: Colors.blueAccent.withOpacity(
+                                          0.08,
+                                        ),
+                                        borderRadius: BorderRadius.circular(14),
+                                      ),
+                                      child: Icon(
+                                        _getTypeIcon(widget.type),
+                                        color: Colors.blueAccent,
+                                        size: 20,
+                                      ),
+                                    ),
+
+                                    const SizedBox(width: 16),
+
+                                    /// TEXT
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            item.title,
+                                            style: const TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.blueAccent,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 6),
+                                          if (item.description != null)
+                                            Text(
+                                              item.description!,
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                fontSize: 14,
+                                                color: Colors.black87,
+                                                height: 1.5,
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }).toList(),
+
+                          /// HEALTHCARE SECTION
+                          if (isHealthcare) _buildHospitalSection(context),
+                        ],
+                      ),
+              ),
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildDocumentRow(BuildContext context, file) {
-    final String url = file.fileUrl;
-    final String name = file.fileName;
-    final bool isPdf = url.toLowerCase().endsWith('.pdf');
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          /// FILE ICON CONTAINER
-          Container(
-            padding: const EdgeInsets.all(10),
-
-            child: Icon(
-              isPdf ? Icons.picture_as_pdf : Icons.image,
-              color: Colors.blueAccent,
-            ),
-          ),
-
-          const SizedBox(width: 14),
-
-          /// FILE NAME
-          Expanded(
-            child: Text(
-              name,
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
-            ),
-          ),
-
-          /// PREVIEW BUTTON
-          IconButton(
-            icon: const Icon(Icons.visibility),
-            onPressed: () {
-              FilePreview.show(context, file.fileUrl);
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.download),
-            onPressed: () async {
-              await launchUrl(Uri.parse(url));
-            },
-          ),
-        ],
       ),
     );
   }
@@ -185,10 +238,9 @@ class WelfareTypePage extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(height: 16),
-        const Divider(thickness: 0.8),
+        const SizedBox(height: 30),
+        const Divider(),
         const SizedBox(height: 20),
-
         const Text(
           "PARTNER HOSPITAL",
           style: TextStyle(
@@ -198,9 +250,7 @@ class WelfareTypePage extends StatelessWidget {
             color: Colors.black54,
           ),
         ),
-
         const SizedBox(height: 16),
-
         GestureDetector(
           onTap: () {
             Navigator.push(

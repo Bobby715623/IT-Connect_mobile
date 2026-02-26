@@ -136,9 +136,7 @@ class _WelfareHomePageState extends State<WelfareHomePage> {
           ? () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (_) => WelfareTypePage(welfare: welfare!),
-                ),
+                MaterialPageRoute(builder: (_) => WelfareTypePage(type: type)),
               );
             }
           : null,

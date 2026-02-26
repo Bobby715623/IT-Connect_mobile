@@ -183,5 +183,24 @@ exports.getScholarshipWelfare = async (req, res) => {
   }
 };
 
+exports.getWelfareByType = async (req, res) => {
+  try {
+    const { type } = req.params;
 
+    const welfareList = await prisma.welfare.findMany({
+      where: {
+        WelfareType: type
+      },
+      include: {
+        Files: true,
+        Officer: true
+      }
+    });
+
+    res.json(welfareList);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Server error" });
+  }
+};
 ///ฝั่งเจ้าหน้าที่ต้องเขียน update welfare file ด้วยนะ เพราะสามารถเพิ่มได้มากกว่าหนึ่งไฟล์ ใน welfare type

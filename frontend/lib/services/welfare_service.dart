@@ -31,4 +31,18 @@ class WelfareService {
       throw Exception('โหลดข้อมูลไม่สำเร็จ');
     }
   }
+
+  static Future<List<Welfare>> getByType(String type) async {
+    final response = await http.get(Uri.parse("$baseUrl/api/type/$type"));
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+
+      return data
+          .map((e) => Welfare.fromJson(e as Map<String, dynamic>, baseUrl))
+          .toList();
+    } else {
+      throw Exception("Failed to load");
+    }
+  }
 }

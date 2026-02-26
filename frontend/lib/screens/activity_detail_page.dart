@@ -137,6 +137,9 @@ class _ActivityDetailPageState extends State<ActivityDetailPage> {
 
     final statusColor = activity!.status.color;
     final statusLabel = activity!.status.label;
+
+    final bool canDelete = activity!.status.label == "Waiting for approval";
+
     final evidences = activity!.evidences ?? [];
 
     return Scaffold(
@@ -324,27 +327,46 @@ class _ActivityDetailPageState extends State<ActivityDetailPage> {
                         ),
                       const SizedBox(height: 30),
 
-                      GestureDetector(
-                        onTap: _confirmDelete,
-                        child: Container(
+                      if (canDelete)
+                        GestureDetector(
+                          onTap: _confirmDelete,
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFF3B30).withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: const Center(
+                              child: Text(
+                                "ลบการยื่นขอชั่วโมงกิจกรรมนี้",
+                                style: TextStyle(
+                                  color: Color(0xFFFF3B30),
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        )
+                      else
+                        Container(
                           width: double.infinity,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFF3B30).withOpacity(0.15),
+                            color: Colors.grey.shade200,
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: const Center(
                             child: Text(
-                              "ลบการยื่นขอชั่วโมงกิจกรรมนี้",
+                              "ไม่สามารถลบได้ (อนุมัติแล้ว)",
                               style: TextStyle(
-                                color: Color(0xFFFF3B30),
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
+                                color: Colors.grey,
+                                fontSize: 14,
                               ),
                             ),
                           ),
                         ),
-                      ),
                     ],
                   ),
                 ),
