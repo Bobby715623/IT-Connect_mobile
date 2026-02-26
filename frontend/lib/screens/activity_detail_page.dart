@@ -47,6 +47,84 @@ class _ActivityDetailPageState extends State<ActivityDetailPage> {
     }
   }
 
+  Future<void> _confirmDelete() async {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withOpacity(0.4),
+      builder: (_) => Dialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                "ลบกิจกรรม",
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                "คุณแน่ใจหรือไม่ว่าต้องการลบกิจกรรมนี้?",
+                style: TextStyle(fontSize: 14),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text(
+                      "ยกเลิก",
+                      style: TextStyle(
+                        color: Color(0xFF8E8E93),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  TextButton(
+                    onPressed: () async {
+                      Navigator.pop(context); // ปิด dialog ก่อน
+                      await _deleteActivity();
+                    },
+                    child: const Text(
+                      "ลบ",
+                      style: TextStyle(
+                        color: Color(0xFFFF3B30),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _deleteActivity() async {
+    try {
+      final response = await http.delete(
+        Uri.parse("http://10.0.2.2:3000/api/Activity/${widget.activityId}"),
+      );
+
+      if (response.statusCode == 200) {
+        Navigator.pop(context, true); // กลับหน้าเดิม
+      } else {
+        throw Exception("Delete failed");
+      }
+    } catch (e) {
+      debugPrint("DELETE ERROR: $e");
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("เกิดข้อผิดพลาดในการลบ")));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
@@ -244,6 +322,29 @@ class _ActivityDetailPageState extends State<ActivityDetailPage> {
                             );
                           },
                         ),
+                      const SizedBox(height: 30),
+
+                      GestureDetector(
+                        onTap: _confirmDelete,
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFF3B30).withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Center(
+                            child: Text(
+                              "ลบการยื่นขอชั่วโมงกิจกรรมนี้",
+                              style: TextStyle(
+                                color: Color(0xFFFF3B30),
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),

@@ -1,13 +1,9 @@
 import 'package:flutter/material.dart';
-
 import 'package:myproject/services/scholarshipApplication_service.dart';
 import 'package:myproject/models/myscholarship.dart';
-import 'package:myproject/screens/myscholarship.dart';
 import 'package:myproject/screens/scholarship.dart';
 import '../config/app_config.dart';
 import 'pdf_preview.dart';
-import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
-
 import 'package:intl/intl.dart';
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
@@ -44,29 +40,41 @@ class _MyScholarshipDetailPageState extends State<MyScholarshipDetailPage> {
       final savePath = "${dir.path}/$fileName";
 
       await Dio().download(url, savePath);
-
       OpenFilex.open(savePath);
     } catch (e) {
       print("Download error: $e");
     }
   }
 
+  Future<void> deleteApplication() async {
+    try {
+      await ScholarshipService.deleteApplication(widget.applicationId);
+
+      if (!mounted) return;
+
+      Navigator.pop(context); // ปิด dialog
+      Navigator.pop(context, true); // ส่ง true กลับ
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("ลบไม่สำเร็จ")));
+    }
+  }
+
+  String formatThaiDateTimeShort(DateTime? date) {
+    if (date == null) return "-";
+
+    final thaiYear = date.year + 543;
+    final month = DateFormat.MMM('th_TH').format(date);
+    final day = date.day;
+    final hour = date.hour.toString().padLeft(2, '0');
+    final minute = date.minute.toString().padLeft(2, '0');
+
+    return "$day $month $thaiYear เวลา $hour:$minute น.";
+  }
+
   @override
   Widget build(BuildContext context) {
-    //fomat เวลาที่ส่ง
-    String formatThaiDateTimeShort(DateTime? date) {
-      if (date == null) return "-";
-
-      final thaiYear = date.year + 543;
-
-      final month = DateFormat.MMM('th_TH').format(date);
-      final day = date.day;
-      final hour = date.hour.toString().padLeft(2, '0');
-      final minute = date.minute.toString().padLeft(2, '0');
-
-      return "$day $month $thaiYear เวลา $hour:$minute น.";
-    }
-
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FB),
       body: SafeArea(
@@ -106,9 +114,7 @@ class _MyScholarshipDetailPageState extends State<MyScholarshipDetailPage> {
               const SizedBox(height: 12),
 
               GestureDetector(
-                onTap: () {
-                  Navigator.pop(context);
-                },
+                onTap: () => Navigator.pop(context),
                 child: const Row(
                   children: [
                     Icon(Icons.arrow_back_ios, size: 14, color: Colors.blue),
@@ -132,8 +138,16 @@ class _MyScholarshipDetailPageState extends State<MyScholarshipDetailPage> {
                 child: FutureBuilder<ScholarshipApplication>(
                   future: future,
                   builder: (context, snapshot) {
-                    if (!snapshot.hasData) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(child: CircularProgressIndicator());
+                    }
+
+                    if (snapshot.hasError) {
+                      return const Center(child: Text("เกิดข้อผิดพลาด"));
+                    }
+
+                    if (!snapshot.hasData) {
+                      return const Center(child: Text("ไม่พบข้อมูล"));
                     }
 
                     final data = snapshot.data!;
@@ -170,12 +184,7 @@ class _MyScholarshipDetailPageState extends State<MyScholarshipDetailPage> {
                         ...data.submissions.map((doc) {
                           final fileUrl =
                               "${AppConfig.baseUrl}/${doc.studentDocument}";
-
                           final isPdf = fileUrl.toLowerCase().endsWith(".pdf");
-                          final isImage =
-                              fileUrl.toLowerCase().endsWith(".jpg") ||
-                              fileUrl.toLowerCase().endsWith(".png") ||
-                              fileUrl.toLowerCase().endsWith(".jpeg");
 
                           return Container(
                             margin: const EdgeInsets.only(bottom: 12),
@@ -198,19 +207,12 @@ class _MyScholarshipDetailPageState extends State<MyScholarshipDetailPage> {
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(child: Text(doc.requirementName)),
-
-                                /// 👀 Preview
                                 IconButton(
                                   icon: const Icon(Icons.visibility),
                                   onPressed: () {
-                                    PdfPreview.show(
-                                      context,
-                                      "${AppConfig.baseUrl}/${doc.studentDocument}",
-                                    );
+                                    FilePreview.show(context, fileUrl);
                                   },
                                 ),
-
-                                /// ⬇️ Download
                                 IconButton(
                                   icon: const Icon(Icons.download),
                                   onPressed: () {
@@ -221,6 +223,104 @@ class _MyScholarshipDetailPageState extends State<MyScholarshipDetailPage> {
                             ),
                           );
                         }),
+
+                        const SizedBox(height: 20),
+
+                        /// ===== DELETE BUTTON (ดีไซน์เดิม) =====
+                        Container(
+                          width: double.infinity,
+                          height: 50,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(30),
+                            color: const Color(0xFFF3D6D6),
+                          ),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(30),
+                              onTap: () {
+                                showDialog(
+                                  context: context,
+                                  barrierColor: Colors.black.withOpacity(0.4),
+                                  builder: (_) => Dialog(
+                                    backgroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(24),
+                                    ),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 24,
+                                        vertical: 24,
+                                      ),
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          const Text(
+                                            "ลบการยื่นทุน",
+                                            style: TextStyle(
+                                              fontSize: 20,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          const Text(
+                                            "คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้?",
+                                            style: TextStyle(fontSize: 14),
+                                          ),
+                                          const SizedBox(height: 24),
+                                          Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.end,
+                                            children: [
+                                              TextButton(
+                                                onPressed: () =>
+                                                    Navigator.pop(context),
+                                                child: const Text(
+                                                  "ยกเลิก",
+                                                  style: TextStyle(
+                                                    color: Color(
+                                                      0xFF8E8E93,
+                                                    ), // 🔘 เทาแทนม่วง
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 16),
+                                              TextButton(
+                                                onPressed: () async {
+                                                  await deleteApplication();
+                                                },
+                                                child: const Text(
+                                                  "ลบ",
+                                                  style: TextStyle(
+                                                    color: Color(0xFFFF3B30),
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                              child: const Center(
+                                child: Text(
+                                  "ลบการยื่นทุนครั้งนี้",
+                                  style: TextStyle(
+                                    color: Color(0xFFFF3B30),
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
 
                         const SizedBox(height: 40),
                       ],

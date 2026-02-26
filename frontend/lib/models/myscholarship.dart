@@ -19,7 +19,7 @@ class ScholarshipApplication {
     return ScholarshipApplication(
       applicationID: json['ApplicationID'],
       applicationDate: json['ApplicationDate'] != null
-          ? DateTime.parse(json['ApplicationDate'])
+          ? DateTime.parse(json['ApplicationDate']).toLocal()
           : null,
       status: ApplyStatusExtension.fromString(json['Status']),
       scholarshipTitle: json['Scholarship']?['Scholarshipname'] ?? '-',

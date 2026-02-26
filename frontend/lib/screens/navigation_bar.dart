@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:myproject/screens/activity_port.dart';
-import 'package:myproject/screens/welfare.dart';
+import 'package:myproject/screens/welfare_home_page.dart';
 import 'scholarship.dart';
 import '../widgets/custom_bottom_nav.dart';
 import 'home.dart';
@@ -50,7 +50,7 @@ class _MainNavigationState extends State<MainNavigation> {
         setState(() => currentIndex = 0);
       },
     ),
-    WelfarePage(
+    WelfareHomePage(
       onGoHome: () {
         setState(() => currentIndex = 0);
       },

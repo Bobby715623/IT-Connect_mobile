@@ -48,20 +48,6 @@ class _HospitalPageState extends State<HospitalPage> {
               const SizedBox(height: 16),
 
               /// ===== HEADER =====
-              Row(
-                children: [
-                  _TabButton(
-                    title: 'DETAIL',
-                    isActive: false,
-                    onTap: () => Navigator.pop(context),
-                  ),
-                  const SizedBox(width: 8),
-                  const _TabButton(title: 'HOSPITAL', isActive: true),
-                ],
-              ),
-
-              const SizedBox(height: 12),
-
               GestureDetector(
                 onTap: () => Navigator.pop(context),
                 child: const Row(
@@ -174,37 +160,6 @@ class _HospitalPageState extends State<HospitalPage> {
   }
 }
 
-// ================= TAB BUTTON =================
-class _TabButton extends StatelessWidget {
-  final String title;
-  final bool isActive;
-  final VoidCallback? onTap;
-
-  const _TabButton({required this.title, required this.isActive, this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isActive ? Colors.blueAccent : Colors.grey.shade300,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(
-          title,
-          style: TextStyle(
-            color: isActive ? Colors.white : Colors.black87,
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 // ================= HOSPITAL CARD =================
 class HospitalCard extends StatelessWidget {
   final String name;
@@ -244,13 +199,13 @@ class HospitalCard extends StatelessWidget {
               width: 42,
               height: 42,
               decoration: BoxDecoration(
-                color: Colors.blueAccent.withOpacity(0.08),
+                color: Colors.redAccent.withOpacity(0.08),
                 borderRadius: BorderRadius.circular(14),
               ),
               child: const Icon(
                 Icons.local_hospital,
                 size: 20,
-                color: Colors.blueAccent,
+                color: Colors.redAccent,
               ),
             ),
 

@@ -5,10 +5,23 @@ import 'activity_detail_page.dart';
 import 'activity_post_page.dart';
 import 'activity_port_detail.dart';
 
-class ActivityHistoryPage extends StatelessWidget {
+class ActivityHistoryPage extends StatefulWidget {
   final int portId;
 
   const ActivityHistoryPage({super.key, required this.portId});
+
+  @override
+  State<ActivityHistoryPage> createState() => _ActivityHistoryPageState();
+}
+
+class _ActivityHistoryPageState extends State<ActivityHistoryPage> {
+  late Future<ActivityPort> _futurePort;
+
+  @override
+  void initState() {
+    super.initState();
+    _futurePort = ActivityPortService.fetchSingle(widget.portId);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -16,7 +29,7 @@ class ActivityHistoryPage extends StatelessWidget {
       backgroundColor: const Color(0xFFF8F9FB),
       body: SafeArea(
         child: FutureBuilder<ActivityPort>(
-          future: ActivityPortService.fetchSingle(portId),
+          future: _futurePort,
           builder: (context, snapshot) {
             if (!snapshot.hasData) {
               return const Center(child: CircularProgressIndicator());
@@ -28,6 +41,7 @@ class ActivityHistoryPage extends StatelessWidget {
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
+                  /// 🔥 TABS
                   Row(
                     children: [
                       _TabButton(
@@ -38,7 +52,7 @@ class ActivityHistoryPage extends StatelessWidget {
                             context,
                             MaterialPageRoute(
                               builder: (_) =>
-                                  ActivityPortDetailPage(portId: portId),
+                                  ActivityPortDetailPage(portId: widget.portId),
                             ),
                           );
                         },
@@ -51,7 +65,8 @@ class ActivityHistoryPage extends StatelessWidget {
                           Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => ActivityPostPage(portId: portId),
+                              builder: (_) =>
+                                  ActivityPostPage(portId: widget.portId),
                             ),
                           );
                         },
@@ -63,7 +78,7 @@ class ActivityHistoryPage extends StatelessWidget {
 
                   const SizedBox(height: 12),
 
-                  /// BACK
+                  /// 🔙 BACK
                   Align(
                     alignment: Alignment.centerLeft,
                     child: GestureDetector(
@@ -104,6 +119,7 @@ class ActivityHistoryPage extends StatelessWidget {
 
                   const SizedBox(height: 20),
 
+                  /// 🔥 LIST
                   Expanded(
                     child: ListView.builder(
                       itemCount: activities.length,
@@ -115,14 +131,23 @@ class ActivityHistoryPage extends StatelessWidget {
 
                         return InkWell(
                           borderRadius: BorderRadius.circular(24),
-                          onTap: () {
-                            Navigator.push(
+                          onTap: () async {
+                            final result = await Navigator.push(
                               context,
                               MaterialPageRoute(
                                 builder: (_) =>
                                     ActivityDetailPage(activityId: a.id!),
                               ),
                             );
+
+                            /// 🔥 ถ้าลบมาให้ refresh ทันที
+                            if (result == true) {
+                              setState(() {
+                                _futurePort = ActivityPortService.fetchSingle(
+                                  widget.portId,
+                                );
+                              });
+                            }
                           },
                           child: Container(
                             margin: const EdgeInsets.only(bottom: 14),
@@ -154,8 +179,6 @@ class ActivityHistoryPage extends StatelessWidget {
                                         ),
                                       ),
                                       const SizedBox(height: 8),
-
-                                      /// 🔥 STATUS BADGE แบบสวย
                                       Container(
                                         padding: const EdgeInsets.symmetric(
                                           horizontal: 10,
@@ -181,7 +204,7 @@ class ActivityHistoryPage extends StatelessWidget {
                                   ),
                                 ),
 
-                                /// RIGHT (HOUR เด่น)
+                                /// RIGHT
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.end,
                                   children: [

@@ -6,7 +6,7 @@ class PersonalEventService {
   static const String baseUrl = "http://10.0.2.2:3000/api/PersonalEvent";
 
   // 🔹 Create
-  static Future<bool> createEvent({
+  static Future<PersonalEvent?> createEvent({
     required String title,
     String? description,
     DateTime? deadline,
@@ -16,18 +16,25 @@ class PersonalEventService {
     final body = {
       "Title": title,
       "Description": description,
-      "Deadline": deadline?.toIso8601String(),
+      "Deadline": deadline?.toUtc().toIso8601String(),
       "remindBeforeDays": remindBeforeDays,
       "UserID": userID,
     };
 
     final response = await http.post(
-      Uri.parse("$baseUrl"),
+      Uri.parse(baseUrl),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode(body),
     );
 
-    return response.statusCode == 201;
+    if (response.statusCode == 201) {
+      final data = jsonDecode(response.body);
+
+      // 🔥 สำคัญมาก ดูว่า backend ส่ง data กลับมาแบบไหน
+      return PersonalEvent.fromJson(data["data"] ?? data);
+    }
+
+    return null;
   }
 
   // 🔹 Get All by User
@@ -56,7 +63,7 @@ class PersonalEventService {
       "Description": description,
       "Deadline": deadline?.toIso8601String(),
       "Notify": notify,
-      "NotifyDatetime": notifyDatetime?.toIso8601String(),
+      "NotifyDatetime": notifyDatetime?.toUtc().toIso8601String(),
     };
 
     final response = await http.put(

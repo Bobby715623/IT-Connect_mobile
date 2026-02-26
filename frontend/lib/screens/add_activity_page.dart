@@ -9,11 +9,20 @@ import '../services/activity_port_service.dart';
 import '../services/activity_service.dart';
 import '../services/activity_evidence_service.dart';
 import 'package:flutter/cupertino.dart';
+import 'activity_post_page.dart';
+import '../models/activity_post.dart';
 
 class CreateActivityPage extends StatefulWidget {
   final int portId;
+  final bool fromPost;
+  final ActivityPost? post;
 
-  const CreateActivityPage({super.key, required this.portId});
+  const CreateActivityPage({
+    super.key,
+    required this.portId,
+    this.fromPost = false,
+    this.post,
+  });
 
   @override
   State<CreateActivityPage> createState() => _CreateActivityPageState();
@@ -23,14 +32,40 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
   final nameController = TextEditingController();
   final locationController = TextEditingController();
   final descriptionController = TextEditingController();
+  final TextEditingController hourController = TextEditingController();
 
   DateTime? startDateTime;
   DateTime? endDateTime;
+  DateTime? selectedDate;
 
   final ImagePicker _picker = ImagePicker();
   final List<File> images = [];
 
   bool isLoading = false;
+  bool get isReadOnly => widget.fromPost;
+
+  @override
+  void initState() {
+    super.initState();
+
+    if (widget.fromPost && widget.post != null) {
+      nameController.text = widget.post!.title ?? "";
+      locationController.text = widget.post!.location ?? "";
+
+      if (widget.post!.datetimeOfActivity != null) {
+        startDateTime = widget.post!.datetimeOfActivity;
+
+        // 🔥 คำนวณเวลาเลิกจากจำนวนชั่วโมง
+        if (widget.post!.hourOfActivity != null) {
+          endDateTime = startDateTime!.add(
+            Duration(hours: widget.post!.hourOfActivity!),
+          );
+        }
+      }
+
+      hourController.text = widget.post!.hourOfActivity?.toString() ?? "";
+    }
+  }
 
   // ===================== DATE TIME =====================
 
@@ -76,27 +111,69 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
       return;
     }
 
-    showModalBottomSheet(
-      context: context,
-      builder: (_) {
-        DateTime temp = startDateTime!;
+    DateTime tempPicked = startDateTime!;
 
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) {
         return SizedBox(
-          height: 280,
+          height: 300,
           child: Column(
             children: [
-              const SizedBox(height: 12),
-              const Text(
-                "Select Start Time",
-                style: TextStyle(fontWeight: FontWeight.w600),
+              /// 🔥 iOS Header Bar
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                decoration: const BoxDecoration(
+                  border: Border(bottom: BorderSide(color: Color(0xFFE5E5EA))),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: const Text(
+                        "Cancel",
+                        style: TextStyle(
+                          color: Color(0xFF8E8E93),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          startDateTime = tempPicked;
+                          endDateTime = null; // reset end
+                        });
+                        Navigator.pop(context);
+                      },
+                      child: const Text(
+                        "Done",
+                        style: TextStyle(
+                          color: Color(0xFF007AFF),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
+
+              /// 🔥 Cupertino Picker
               Expanded(
                 child: CupertinoDatePicker(
                   mode: CupertinoDatePickerMode.time,
                   use24hFormat: true,
-                  initialDateTime: temp,
+                  initialDateTime: startDateTime!,
                   onDateTimeChanged: (value) {
-                    temp = DateTime(
+                    tempPicked = DateTime(
                       startDateTime!.year,
                       startDateTime!.month,
                       startDateTime!.day,
@@ -105,16 +182,6 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
                     );
                   },
                 ),
-              ),
-              TextButton(
-                onPressed: () {
-                  setState(() {
-                    startDateTime = temp;
-                    endDateTime = null;
-                  });
-                  Navigator.pop(context);
-                },
-                child: const Text("Done"),
               ),
             ],
           ),
@@ -129,27 +196,74 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
       return;
     }
 
-    showModalBottomSheet(
-      context: context,
-      builder: (_) {
-        DateTime temp = endDateTime ?? startDateTime!;
+    DateTime tempPicked = endDateTime ?? startDateTime!;
 
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) {
         return SizedBox(
-          height: 280,
+          height: 300,
           child: Column(
             children: [
-              const SizedBox(height: 12),
-              const Text(
-                "Select End Time",
-                style: TextStyle(fontWeight: FontWeight.w600),
+              /// 🔥 iOS Header
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                decoration: const BoxDecoration(
+                  border: Border(bottom: BorderSide(color: Color(0xFFE5E5EA))),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: const Text(
+                        "Cancel",
+                        style: TextStyle(
+                          color: Color(0xFF8E8E93),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        if (tempPicked.isBefore(startDateTime!)) {
+                          _showMessage("เวลาจบต้องมากกว่าเวลาเริ่ม");
+                          return;
+                        }
+
+                        setState(() {
+                          endDateTime = tempPicked;
+                        });
+
+                        Navigator.pop(context);
+                      },
+                      child: const Text(
+                        "Done",
+                        style: TextStyle(
+                          color: Color(0xFF007AFF),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
+
+              /// 🔥 Cupertino Picker
               Expanded(
                 child: CupertinoDatePicker(
                   mode: CupertinoDatePickerMode.time,
                   use24hFormat: true,
-                  initialDateTime: temp,
+                  initialDateTime: tempPicked,
                   onDateTimeChanged: (value) {
-                    temp = DateTime(
+                    tempPicked = DateTime(
                       startDateTime!.year,
                       startDateTime!.month,
                       startDateTime!.day,
@@ -158,21 +272,6 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
                     );
                   },
                 ),
-              ),
-              TextButton(
-                onPressed: () {
-                  if (temp.isBefore(startDateTime!)) {
-                    _showMessage("เวลาจบต้องมากกว่าเวลาเริ่ม");
-                    return;
-                  }
-
-                  setState(() {
-                    endDateTime = temp;
-                  });
-
-                  Navigator.pop(context);
-                },
-                child: const Text("Done"),
               ),
             ],
           ),
@@ -357,9 +456,17 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
                         "กิจกรรม",
                         Column(
                           children: [
-                            _modernInput("ชื่อกิจกรรม", nameController),
+                            _modernInput(
+                              "ชื่อกิจกรรม",
+                              nameController,
+                              readOnly: widget.fromPost,
+                            ),
                             const SizedBox(height: 15),
-                            _modernInput("สถานที่", locationController),
+                            _modernInput(
+                              "สถานที่",
+                              locationController,
+                              readOnly: widget.fromPost,
+                            ),
                           ],
                         ),
                       ),
@@ -377,6 +484,7 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
                                       "dd MMM yyyy",
                                     ).format(startDateTime!),
                               onTap: pickDate,
+                              readOnly: widget.fromPost,
                             ),
                             const SizedBox(height: 18),
                             _selector(
@@ -386,6 +494,7 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
                                   ? "เลือกเวลา"
                                   : DateFormat("HH:mm").format(startDateTime!),
                               onTap: pickStartTime,
+                              readOnly: widget.fromPost,
                             ),
                             const SizedBox(height: 18),
                             _selector(
@@ -395,6 +504,7 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
                                   ? "เลือกเวลา"
                                   : DateFormat("HH:mm").format(endDateTime!),
                               onTap: pickEndTime,
+                              readOnly: widget.fromPost,
                             ),
                           ],
                         ),
@@ -518,53 +628,70 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
     );
   }
 
-  Widget _modernInput(String hint, TextEditingController controller) {
+  Widget _modernInput(
+    String label,
+    TextEditingController controller, {
+    bool readOnly = false,
+  }) {
     return TextField(
       controller: controller,
+      readOnly: readOnly,
       decoration: InputDecoration(
-        hintText: hint,
-        filled: true,
-        fillColor: const Color(0xFFF1F3F6),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
-          borderSide: BorderSide.none,
-        ),
+        labelText: label,
+        filled: readOnly,
+        fillColor: readOnly ? Colors.grey.shade100 : null,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
       ),
     );
   }
 
   Widget _selector({
     required String label,
-    required String text,
     required IconData icon,
+    required String text,
     required VoidCallback onTap,
+    bool readOnly = false,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(fontSize: 12, color: Colors.black54),
+    return GestureDetector(
+      onTap: readOnly ? null : onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        decoration: BoxDecoration(
+          color: readOnly ? Colors.grey.shade100 : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey.shade300),
         ),
-        const SizedBox(height: 6),
-        GestureDetector(
-          onTap: onTap,
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF1F3F6),
-              borderRadius: BorderRadius.circular(18),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              size: 18,
+              color: readOnly ? Colors.grey : Colors.blueAccent,
             ),
-            child: Row(
-              children: [
-                Icon(icon, size: 18),
-                const SizedBox(width: 10),
-                Text(text),
-              ],
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    text,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: readOnly ? Colors.grey : Colors.black87,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
+          ],
         ),
-      ],
+      ),
     );
   }
 

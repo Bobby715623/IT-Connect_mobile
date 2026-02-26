@@ -10,6 +10,7 @@ class Scholarship {
   final DateTime? endDate;
   final DateTime? announceInterviewDate;
   final DateTime? interviewDate;
+  final String? interviewPlace;
   final DateTime? winnerAnnounceDate;
 
   final List<ScholarshipRequirement> requirements;
@@ -26,6 +27,7 @@ class Scholarship {
     this.activityDeadline,
     this.announceInterviewDate,
     this.interviewDate,
+    this.interviewPlace,
     this.winnerAnnounceDate,
     required this.requirements,
   });
@@ -55,6 +57,8 @@ class Scholarship {
       announceInterviewDate: json['AnnouceStudentInterviewday'] != null
           ? DateTime.parse(json['AnnouceStudentInterviewday'])
           : null,
+
+      interviewPlace: json['Interviewplace'] ?? '',
 
       winnerAnnounceDate: json['WinnerAnnouceday'] != null
           ? DateTime.parse(json['WinnerAnnouceday'])

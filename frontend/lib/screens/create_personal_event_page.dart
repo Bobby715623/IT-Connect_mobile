@@ -190,7 +190,7 @@ class _CreatePersonalEventPageState extends State<CreatePersonalEventPage> {
       }
     } else {
       /// ➕ CREATE MODE
-      final success = await PersonalEventService.createEvent(
+      final newEvent = await PersonalEventService.createEvent(
         title: _titleController.text.trim(),
         description: _descriptionController.text.trim(),
         deadline: selectedDateTime,
@@ -199,8 +199,8 @@ class _CreatePersonalEventPageState extends State<CreatePersonalEventPage> {
 
       setState(() => isLoading = false);
 
-      if (success) {
-        Navigator.pop(context, true);
+      if (newEvent != null) {
+        Navigator.pop(context, newEvent);
       }
     }
   }

@@ -4,6 +4,7 @@ import 'package:myproject/screens/navigation_bar.dart';
 import 'package:myproject/services/scholarshipApplication_service.dart';
 import 'myscholarship_detail_page.dart';
 import 'home.dart';
+import 'scholarship.dart';
 
 class MyScholarshipPage extends StatefulWidget {
   final VoidCallback onGoHome;
@@ -48,7 +49,15 @@ class _MyScholarshipPageState extends State<MyScholarshipPage> {
                     title: 'ALL SCHOLARSHIP',
                     isActive: false,
                     onTap: () {
-                      Navigator.pop(context);
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ScholarshipPage(
+                            userId: widget.userId,
+                            onGoHome: widget.onGoHome,
+                          ),
+                        ),
+                      );
                     },
                   ),
                   const SizedBox(width: 8),
@@ -122,6 +131,13 @@ class _MyScholarshipPageState extends State<MyScholarshipPage> {
                         return _ModernScholarshipCard(
                           item: item,
                           userId: widget.userId,
+                          onRefresh: () {
+                            setState(() {
+                              future = ScholarshipService.getMyHistory(
+                                widget.userId,
+                              );
+                            });
+                          },
                         );
                       },
                     );
@@ -142,14 +158,19 @@ class _MyScholarshipPageState extends State<MyScholarshipPage> {
 class _ModernScholarshipCard extends StatelessWidget {
   final ScholarshipApplication item;
   final int userId;
+  final VoidCallback onRefresh;
 
-  const _ModernScholarshipCard({required this.item, required this.userId});
+  const _ModernScholarshipCard({
+    required this.item,
+    required this.userId,
+    required this.onRefresh,
+  });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
+      onTap: () async {
+        final result = await Navigator.push(
           context,
           MaterialPageRoute(
             builder: (_) => MyScholarshipDetailPage(
@@ -158,6 +179,10 @@ class _ModernScholarshipCard extends StatelessWidget {
             ),
           ),
         );
+
+        if (result == true) {
+          onRefresh(); // 🔥 ให้หน้าแม่รีโหลด
+        }
       },
       child: Container(
         padding: const EdgeInsets.all(18),

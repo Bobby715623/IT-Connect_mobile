@@ -3,6 +3,7 @@ import 'package:myproject/screens/scholarship_detail_page.dart';
 import 'package:myproject/screens/myscholarship.dart';
 import 'package:myproject/models/scholarship.dart';
 import 'package:myproject/services/scholarship_service.dart';
+import 'navigation_bar.dart';
 
 class ScholarshipPage extends StatefulWidget {
   final VoidCallback onGoHome;
@@ -48,14 +49,12 @@ class _ScholarshipPageState extends State<ScholarshipPage> {
                     title: 'MY SCHOLARSHIP',
                     isActive: false,
                     onTap: () {
-                      Navigator.push(
+                      Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(
                           builder: (_) => MyScholarshipPage(
                             userId: widget.userId,
-                            onGoHome: () {
-                              Navigator.pop(context);
-                            },
+                            onGoHome: widget.onGoHome,
                           ),
                         ),
                       );
@@ -68,7 +67,15 @@ class _ScholarshipPageState extends State<ScholarshipPage> {
 
               /// ===== HOME =====
               GestureDetector(
-                onTap: widget.onGoHome,
+                onTap: () {
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => MainNavigation(userId: widget.userId),
+                    ),
+                    (route) => false,
+                  );
+                },
                 child: const Row(
                   children: [
                     Icon(Icons.arrow_back_ios, size: 14, color: Colors.blue),

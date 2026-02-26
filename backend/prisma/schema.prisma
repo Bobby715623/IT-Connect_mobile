@@ -297,15 +297,25 @@ model ScholarshipSubmission {
 }
 
 model Welfare {
-  WelfareID       Int @id @default(autoincrement())
-  WelfareType     WelfareType?
-  WelfareTitle    String?
-  Description     String? @db.Text
-  WelfareGuide    String?
-  WelfareDocument String?
-  OfficerID       Int
+  WelfareID    Int           @id @default(autoincrement())
+  WelfareType  WelfareType   @unique
+  Title        String
+  Description  String?       @db.Text
+  CoverImage   String?
+  OfficerID    Int
 
-  Officer Officer @relation(fields: [OfficerID], references: [OfficerID])
+  Officer      Officer       @relation(fields: [OfficerID], references: [OfficerID])
+  Files        WelfareFile[]
+}
+
+model WelfareFile {
+  WelfareFileID Int      @id @default(autoincrement())
+  FileName      String
+  FileUrl       String
+  FileType      String?  // pdf, image
+  WelfareID     Int
+
+  Welfare       Welfare  @relation(fields: [WelfareID], references: [WelfareID])
 }
 
 enum WelfareType {

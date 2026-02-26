@@ -23,11 +23,11 @@ class PersonalEvent {
       title: json['Title'],
       description: json['Description'],
       deadline: json['Deadline'] != null
-          ? DateTime.parse(json['Deadline'])
+          ? DateTime.parse(json['Deadline']).toLocal()
           : null,
       notify: json['Notify'],
       notifyDatetime: json['NotifyDatetime'] != null
-          ? DateTime.parse(json['NotifyDatetime'])
+          ? DateTime.parse(json['NotifyDatetime']).toLocal()
           : null,
       userID: json['UserID'],
     );

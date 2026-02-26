@@ -101,7 +101,7 @@ class _PersonalEventDetailPageState extends State<PersonalEventDetailPage> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   GestureDetector(
-                    onTap: () => Navigator.pop(context),
+                    onTap: () => Navigator.pop(context, currentEvent),
                     child: const Row(
                       children: [
                         Icon(Icons.arrow_back_ios, size: 14, color: iosBlue),

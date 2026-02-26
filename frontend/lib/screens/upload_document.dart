@@ -6,6 +6,8 @@ import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:myproject/screens/myscholarship.dart';
+import '../services/welfare_service.dart';
+import '../screens/welfare_type_page.dart';
 
 class Requirement {
   final int id;
@@ -282,7 +284,49 @@ class _UploadDocumentPageState extends State<UploadDocumentPage> {
                       );
                     }).toList(),
 
-                    const SizedBox(height: 30),
+                    const SizedBox(height: 8),
+
+                    GestureDetector(
+                      onTap: () async {
+                        try {
+                          final welfare =
+                              await WelfareService.fetchScholarshipWelfare();
+
+                          if (welfare != null && context.mounted) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    WelfareTypePage(welfare: welfare),
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text("ไม่สามารถโหลดรายละเอียดได้"),
+                            ),
+                          );
+                        }
+                      },
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.add, size: 18, color: Color(0xFF007AFF)),
+                          SizedBox(width: 6),
+                          Text(
+                            "ดาวน์โหลดใบสมัครและแบบฟอร์มที่เกี่ยวข้อง",
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xFF007AFF),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
 
                     Container(
                       width: double.infinity,

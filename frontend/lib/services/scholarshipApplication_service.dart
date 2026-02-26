@@ -46,4 +46,23 @@ class ScholarshipService {
 
     return ScholarshipApplication.fromJson(data);
   }
+
+  static Future<void> deleteApplication(int applicationId) async {
+    final token = await AuthService.getToken();
+
+    final response = await http.delete(
+      Uri.parse('$baseUrl/api/scholarship/application/$applicationId'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    print("DELETE status: ${response.statusCode}");
+    print("DELETE body: ${response.body}");
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception('ลบไม่สำเร็จ (${response.statusCode})');
+    }
+  }
 }

@@ -4,6 +4,7 @@ import 'create_personal_event_page.dart';
 import '../services/personal_event_service.dart';
 import '../models/personal_event.dart';
 import 'personal_event_detail_page.dart';
+import 'package:intl/intl.dart';
 
 class CalendarPage extends StatefulWidget {
   final int userId;
@@ -27,6 +28,40 @@ class _CalendarPageState extends State<CalendarPage> {
     super.initState();
     _selectedDay = DateTime.now();
     _loadEvents();
+  }
+
+  void _updateEvent(PersonalEvent updatedEvent) {
+    final oldDateKey = _events.keys.firstWhere(
+      (key) => _events[key]!.any(
+        (e) => e.personalEventID == updatedEvent.personalEventID,
+      ),
+      orElse: () => DateTime(
+        updatedEvent.deadline!.year,
+        updatedEvent.deadline!.month,
+        updatedEvent.deadline!.day,
+      ),
+    );
+
+    setState(() {
+      // ลบตัวเก่า
+      _events[oldDateKey]?.removeWhere(
+        (e) => e.personalEventID == updatedEvent.personalEventID,
+      );
+
+      if (_events[oldDateKey]?.isEmpty ?? false) {
+        _events.remove(oldDateKey);
+      }
+
+      // เพิ่มตัวใหม่
+      final newDateKey = DateTime(
+        updatedEvent.deadline!.year,
+        updatedEvent.deadline!.month,
+        updatedEvent.deadline!.day,
+      );
+
+      _events.putIfAbsent(newDateKey, () => []);
+      _events[newDateKey]!.add(updatedEvent);
+    });
   }
 
   Future<void> _selectMonthYear() async {
@@ -244,8 +279,8 @@ class _CalendarPageState extends State<CalendarPage> {
                         ),
                       );
 
-                      if (result == true) {
-                        await _loadEvents();
+                      if (result is PersonalEvent) {
+                        _updateEvent(result);
                       }
                     },
                     child: const Row(
@@ -295,8 +330,8 @@ class _CalendarPageState extends State<CalendarPage> {
                                 _removeEvent(event);
                               }
 
-                              if (result == "edited") {
-                                await _loadEvents(); // reload เพื่ออัปเดตข้อมูล
+                              if (result != null && result is PersonalEvent) {
+                                _updateEvent(result);
                               }
                             },
                             child: Container(
@@ -338,11 +373,11 @@ class _CalendarPageState extends State<CalendarPage> {
                                         ),
                                         const SizedBox(height: 6),
                                         Text(
-                                          event.deadline?.toString().substring(
-                                                0,
-                                                16,
-                                              ) ??
-                                              "",
+                                          event.deadline != null
+                                              ? DateFormat(
+                                                  'dd/MM/yyyy HH:mm',
+                                                ).format(event.deadline!)
+                                              : "",
                                           style: const TextStyle(
                                             fontSize: 13,
                                             color: Color(0xFF8E8E93),

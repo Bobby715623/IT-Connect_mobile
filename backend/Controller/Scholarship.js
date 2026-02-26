@@ -301,3 +301,20 @@ exports.viewsinglescholarshipactivityport = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 }
+
+exports.removeApplication = async (req, res) => {
+  try {
+    const { applicationId } = req.params;
+
+    await prisma.scholarshipApplication.delete({
+      where: {
+        ApplicationID: parseInt(applicationId),
+      },
+    });
+
+    res.status(200).json({ message: "Application deleted successfully" });
+  } catch (error) {
+    console.error("DELETE ERROR:", error);
+    res.status(500).json({ error: error.message });
+  }
+};

@@ -347,3 +347,90 @@ exports.uploadEvidence = async (req, res) => {
         res.status(500).json({ message: "Server Error" });
     }
 };
+
+exports.submitActivityFromPost = async (req, res) => {
+    try {
+        const { activitypostId } = req.params;
+        const { UserID, Description } = req.body;
+
+        // 1. ✅ แก้ไข: ตรวจสอบ req.files (มี s) แทน req.file
+        if (!req.files || req.files.length === 0) {
+            return res.status(400).json({ message: "กรุณาแนบรูปภาพหลักฐานกิจกรรม" });
+        }
+
+        // 2. ดึงข้อมูล "ต้นฉบับ" จากโพสต์ของเจ้าหน้าที่
+        const sourcePost = await prisma.activityPost.findUnique({
+            where: { ActivityPostID: Number(activitypostId) },
+            include: { Officer: { include: { User: true } } }
+        });
+
+        if (!sourcePost) return res.status(404).send('ไม่พบโพสต์กิจกรรมต้นทาง');
+
+        // 3. หา "สมุดพก (ActivityPort)" ของนักเรียนที่ยัง Active อยู่
+        const activePort = await prisma.activityPort.findFirst({
+            where: {
+                UserID: Number(UserID),
+                OR: [{ status: 'active' }, { EndDate: { gte: new Date() } }]
+            },
+            orderBy: { CreateDate: 'desc' }
+        });
+
+        if (!activePort) return res.status(400).json({ message: "ไม่พบ Activity Port ที่ใช้งานได้" });
+
+        // 4. เช็คว่าเคยส่งงานของโพสต์นี้ไปหรือยัง (กันส่งซ้ำ)
+        const existingSubmission = await prisma.activity.findFirst({
+            where: {
+                ActivityPortID: activePort.ActivityPortID,
+                RelatedPostID: Number(activitypostId)
+            }
+        });
+
+        if (existingSubmission) return res.status(400).json({ message: "คุณได้ส่งข้อมูลกิจกรรมนี้ไปแล้ว" });
+
+        // ✅ เตรียมข้อมูลรูปภาพทั้งหมด (Map จาก req.files)
+        const evidenceData = req.files.map((file) => ({
+            Picture: `http://localhost:5000/upload/${file.filename}`
+        }));
+        // 5. ✨ สร้าง Activity ใหม่ โดย "Copy" ข้อมูลจาก sourcePost
+        const newActivity = await prisma.activity.create({
+            data: {
+                // ก๊อปปี้ข้อมูลจากโพสต์เจ้าหน้าที่ (เชื่อถือได้กว่าให้เด็กกรอกเอง)
+                ActivityName: sourcePost.Title, 
+                Description: Description || sourcePost.Description, // ถ้าเด็กไม่พิมอะไรมา ใช้ Description เดิมของโพสต์
+                HourofActivity: sourcePost.HourofActivity,
+                Location: sourcePost.Location,
+                DatetimeofActivity: sourcePost.DatetimeofActivity,
+                
+                Status: 'waitforprocess', // สถานะเริ่มต้น: รอตรวจ
+                
+                // ✅ การเชื่อมโยง (Relations)
+                ActivityPort: { connect: { ActivityPortID: activePort.ActivityPortID } }, // ยัดใส่พอร์ตนักเรียน
+                RelatedPost: { connect: { ActivityPostID: Number(activitypostId) } },     // 🔗 ลิงก์กลับไปหาโพสต์ต้นทาง (สำคัญ!)
+
+                // ✅ แนบรูปหลักฐาน
+                ActivityEvidence: {
+                    create: evidenceData
+                }
+            },
+            include: { ActivityEvidence: true }
+        });
+
+        // ==================================================================================
+        // 🟡 ZONE แจ้งเตือน: แจ้งเจ้าหน้าที่ว่ามีคนส่งงาน (Optional)
+        // ==================================================================================
+        /*
+        const officerLineID = sourcePost.Officer?.User?.LineUserID;
+        if (officerLineID) {
+             const msg = `📝 มีการส่งงานใหม่!\nกิจกรรม: ${sourcePost.Title}\nโดย: UserID ${UserID}`;
+             // await sendLineMessage(officerLineID, msg);
+        }
+        */
+        // ==================================================================================
+
+        res.json({ message: "ส่งข้อมูลกิจกรรมเรียบร้อยแล้ว", data: newActivity });
+
+    } catch (err) {
+        console.log(err);
+        res.status(500).json({ message: "Server Error: " + err.message });
+    }
+};

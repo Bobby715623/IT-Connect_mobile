@@ -1,94 +1,187 @@
 const prisma = require('../prisma/prisma');
+
+
+// =============================
+// GET ONE
+// =============================
 exports.infowelfare = async (req, res) => {
   try {
     const { welfareId } = req.params;
+
     const welfare = await prisma.welfare.findUnique({
       where: {
         WelfareID: Number(welfareId),
       },
       include: {
+        Officer: true,
+        Files: true
+      },
+    });
+
+    res.json(welfare);
+
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+
+// =============================
+// GET ALL
+// =============================
+exports.welfarelist = async (req, res) => {
+  try {
+    const welfarelist = await prisma.welfare.findMany({
+      include: {
+        Officer: true,
+        Files: true
+      },
+    });
+
+    res.json(welfarelist);
+
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+
+// =============================
+// CREATE welfare
+// =============================
+exports.createwelfare = async (req, res) => {
+  try {
+    const {
+      WelfareType,
+      Title,
+      Description,
+      CoverImage,
+      OfficerID,
+      Files
+    } = req.body;
+
+    if (!OfficerID) {
+      return res.status(400).json({ error: 'OfficerID is required' });
+    }
+
+    if (!Title) {
+      return res.status(400).json({ error: 'Title is required' });
+    }
+
+    const newWelfare = await prisma.welfare.create({
+      data: {
+        WelfareType,
+        Title,
+        Description,
+        CoverImage: CoverImage ?? null,
+
+        Officer: {
+          connect: { OfficerID: Number(OfficerID) }
+        },
+
+        // ✅ ใส่ Files เฉพาะตอนมีจริง ๆ
+        ...(Files && Files.length > 0 && {
+          Files: {
+            create: Files.map(file => ({
+              FileName: file.FileName,
+              FileUrl: file.FileUrl,
+              FileType: file.FileType
+            }))
+          }
+        })
+      },
+      include: {
+        Officer: true,
+        Files: true
+      }
+    });
+
+    res.json(newWelfare);
+
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
+// =============================
+// UPDATE Welfare
+// =============================
+exports.editwelfare = async (req, res) => {
+  try {
+    const { welfareId } = req.params;
+
+    const {
+      Title,
+      Description,
+      CoverImage
+    } = req.body;
+
+    const updatedWelfare = await prisma.welfare.update({
+      where: {
+        WelfareID: Number(welfareId)
+      },
+      data: {
+        Title,
+        Description,
+        CoverImage
+      },
+      include: {
+        Files: true,
         Officer: true
       }
     });
+
+    res.json(updatedWelfare);
+
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
+// =============================
+// DELETE welfare
+// =============================
+exports.removewelfare = async (req, res) => {
+  try {
+    const { welfareId } = req.params;
+
+    const deletedwelfare = await prisma.welfare.delete({
+      where: {
+        WelfareID: Number(welfareId)
+      }
+    });
+
+    res.json(deletedwelfare);
+
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+//เอาไว้ใช้เรียกไป welfare type scholarship
+exports.getScholarshipWelfare = async (req, res) => {
+  try {
+    const welfare = await prisma.welfare.findFirst({
+      where: { WelfareType: "scholarship" },
+      include: {
+        Officer: true,
+        Files: true
+      }
+    });
+
     res.json(welfare);
   } catch (err) {
-    res.status(500).send('There is an error: ' + err.message)
+    console.log(err);
+    res.status(500).json({ error: err.message });
   }
 };
-exports.welfarelist = async (req, res) => {
-  try {
-    const welfarelist = await prisma.welfare.findMany({include: { Officer: true }});
-    res.send(welfarelist);
-  } catch (err) {
-    res.status(500).send('There is an error: ' + er.message)
-  }
-};
-exports.createwelfare = async (req, res) => {
-    try {
-      console.log(req.body);
-        const { 
-            officerId,
-            Welfaretype, welfaretitle, description, welfareguide, welfaredocument
-        } = req.body;
-        if (!officerId) {
-            return res.status(400).send('OfficerID is required');
-        }
-        const newWelfare = await prisma.welfare.create({
-            data: {
-                WelfareType: Welfaretype,
-                WelfareTitle: welfaretitle,
-                Description: description,
-                WelfareGuide: welfareguide,
-                WelfareDocument: welfaredocument,
-                Officer: {
-                    connect: {
-                        OfficerID: Number(officerId)
-                    }
-                },
-            },
-            include: {
-                Officer: true
-            }
-        });
-        res.send(newWelfare);
-    } catch (error) {
-        console.log(error);
-        res.status(500).send('Error: ' + error.message);
-    }
-};
-exports.editwelfare = async (req, res) => {
-    try {
-        const { welfareId } = req.params;
-        const { 
-            Welfaretype, welfaretitle, description, welfareguide, welfaredocument 
-        } = req.body;
 
-        const updatedWelfare = await prisma.welfare.update({
-            where: {
-                WelfareID: Number(welfareId)
-            },
-            data: {
-                WelfareType: Welfaretype,
-                WelfareTitle: welfaretitle,
-                Description: description,
-                WelfareGuide: welfareguide,
-                WelfareDocument: welfaredocument
-            }
-        });
-        res.send(updatedWelfare);
-    } catch (error) {
-        console.log(error);
-        res.status(500).send('There is an error: ' + error.message);
-    }
-};
-exports.removewelfare = async (req, res) => {
-  const { welfareId } = req.params;
-  try {
-    const deletedwelfare = await prisma.welfare.delete({
-      where: { WelfareID: Number(welfareId) },
-    });
-    res.send(deletedwelfare);
-  } catch (err) {
-    res.status(500).send('There is an error: ' + err)
-  }
-}
+
+///ฝั่งเจ้าหน้าที่ต้องเขียน update welfare file ด้วยนะ เพราะสามารถเพิ่มได้มากกว่าหนึ่งไฟล์ ใน welfare type
