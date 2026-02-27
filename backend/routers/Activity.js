@@ -19,8 +19,11 @@ const {
   updateactivity,
   removeactivity,
   followactivity,
+  getFollowedActivities,
   activityportByUser,
-  uploadEvidence
+  uploadEvidence,
+  removeEvidence,
+  submitActivityFromPost  
 } = require('../Controller/Activity');
 
 
@@ -45,7 +48,13 @@ router.get('/Activitypost/:activitypostId', singleactivitypost);
 router.post('/Activitypost', createactivitypost);
 router.put('/Activitypost/:activitypostId', updateactivitypost);
 router.delete('/Activitypost/:activitypostId', removeactivitypost);
-router.post('/Activitypost/:activitypostId/follow', followactivity);
+router.post('/Activitypost/follow/:activitypostId', followactivity);
+router.post(
+  '/Activitypost/:activitypostId/submit',
+  upload.array('images'),
+  submitActivityFromPost
+);
+router.get("/Activitypost/follow/user/:userId", getFollowedActivities);
 
 
 // =================== ACTIVITY PORT =================== 
@@ -74,5 +83,8 @@ router.post(
   upload.array('images'),
   uploadEvidence
 );
+router.delete('/evidence/:evidenceId', removeEvidence);
 
 module.exports = router;
+
+

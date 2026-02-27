@@ -137,10 +137,18 @@ exports.activityportlist = async (req, res) => {
 exports.singleactivityport = async (req, res) => {
     try {
         const { activityportId } = req.params;
+
         const port = await prisma.activityPort.findUnique({
             where: { ActivityPortID: Number(activityportId) },
-            include: { Activity: true }
+            include: { 
+                Activity: {
+                    include: {
+                        RelatedPost: true   // 🔥 เพิ่มอันนี้
+                    }
+                }
+            }
         });
+
         res.json(port);
     } catch (err) {
         console.log(err);
@@ -227,10 +235,15 @@ exports.removeactivityport = async (req, res) => {
 exports.singleactivity = async (req, res) => {
     try {
         const { activityId } = req.params;
+
         const activity = await prisma.activity.findUnique({
             where: { ActivityID: Number(activityId) },
-            include: { ActivityEvidence: true }
+            include: { 
+                ActivityEvidence: true,
+                RelatedPost: true   // 🔥 เพิ่มอันนี้
+            }
         });
+
         res.json(activity);
     } catch (err) {
         console.log(err);
@@ -317,30 +330,102 @@ exports.removeactivity = async (req, res) => {
 //มอสแก้ remove นะ
 
 exports.followactivity = async (req, res) => {
-    try {
-        const { activitypostId } = req.params;
-        const { UserID } = req.body;
-        const existingFollow = await prisma.follow_ActivityPost.findFirst({
-            where: {
-                ActivityPostID: Number(activitypostId),
-                UserID: Number(UserID)
-            }
-        });
-        if (existingFollow) {
-            return res.status(400).json({ message: "You already followed this activity" });
-        }
+  try {
+    const { activitypostId } = req.params;
+    const { UserID } = req.body;
 
-        const newFollow = await prisma.follow_ActivityPost.create({
-            data: {
-                ActivityPostID: Number(activitypostId),
-                UserID: Number(UserID)
-            }
-        });
-        res.json(newFollow);
-    } catch (err) {
-        console.log(err);
-        res.status(500).json({ message: "Server Error" });
+    const activityId = Number(activitypostId);
+    const userId = Number(UserID);
+
+    // 🔎 1. เช็คว่ามี follow อยู่ไหม
+    const existingFollow = await prisma.follow_ActivityPost.findFirst({
+      where: {
+        ActivityPostID: activityId,
+        UserID: userId
+      }
+    });
+
+    
+    // 🟥 UNFOLLOW
+    if (existingFollow) {
+
+  // ลบ follow แบบชัวร์ ๆ
+  await prisma.follow_ActivityPost.deleteMany({
+    where: {
+      UserID: userId,
+      ActivityPostID: activityId
     }
+  });
+
+  // ลบ personal event ด้วย
+  await prisma.personalEvent.deleteMany({
+    where: {
+      UserID: userId,
+      ActivityPostID: activityId
+    }
+  });
+
+  return res.json({ followed: false });
+}
+
+    // 🟢 ถ้าไม่มี → FOLLOW
+
+    const activityPost = await prisma.activityPost.findUnique({
+      where: {
+        ActivityPostID: activityId
+      }
+    });
+
+    if (!activityPost) {
+      return res.status(404).json({ message: "Activity not found" });
+    }
+
+    // สร้าง follow
+    await prisma.follow_ActivityPost.create({
+      data: {
+        ActivityPostID: activityId,
+        UserID: userId
+      }
+    });
+
+    // สร้าง personal event
+    await prisma.personalEvent.create({
+      data: {
+        Title: activityPost.Title,
+        Description: activityPost.Description,
+        Deadline: activityPost.DatetimeofActivity,
+        Notify: true,
+        UserID: userId,
+        ActivityPostID: activityId
+      }
+    });
+
+    return res.json({ followed: true });
+
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+
+exports.getFollowedActivities = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const follows = await prisma.follow_ActivityPost.findMany({
+      where: {
+        UserID: Number(userId)
+      },
+      select: {
+        ActivityPostID: true
+      }
+    });
+
+    res.json(follows);
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ message: "Server Error" });
+  }
 };
 
 //------มอสเพิ่ม ไว้เก็บรูป--------//
@@ -366,6 +451,31 @@ exports.uploadEvidence = async (req, res) => {
         console.log(err);
         res.status(500).json({ message: "Server Error" });
     }
+};
+
+exports.removeEvidence = async (req, res) => {
+  try {
+    const { evidenceId } = req.params;
+
+    const evidence = await prisma.activityEvidence.findUnique({
+      where: { EvidenceID: Number(evidenceId) }
+    });
+
+    if (!evidence) {
+      return res.status(404).json({ message: "Evidence not found" });
+    }
+
+    // 🔥 ลบ record จาก DB ก่อน
+    await prisma.activityEvidence.delete({
+      where: { EvidenceID: Number(evidenceId) }
+    });
+
+    res.json({ message: "Evidence deleted successfully" });
+
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ message: "Server Error" });
+  }
 };
 
 exports.submitActivityFromPost = async (req, res) => {
@@ -409,7 +519,7 @@ exports.submitActivityFromPost = async (req, res) => {
 
         // ✅ เตรียมข้อมูลรูปภาพทั้งหมด (Map จาก req.files)
         const evidenceData = req.files.map((file) => ({
-            Picture: `http://localhost:5000/upload/${file.filename}`
+            Picture: file.filename
         }));
         // 5. ✨ สร้าง Activity ใหม่ โดย "Copy" ข้อมูลจาก sourcePost
         const newActivity = await prisma.activity.create({

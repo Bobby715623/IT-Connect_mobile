@@ -131,6 +131,8 @@ model PersonalEvent {
   NotifyDatetime  DateTime?
   UserID          Int
 
+  ActivityPostID  Int?
+
   User            User @relation(fields: [UserID], references: [UserID])
 }
 model Notification {

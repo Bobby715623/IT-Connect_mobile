@@ -23,4 +23,13 @@ class ActivityEvidenceService {
       throw Exception("Failed to upload evidence");
     }
   }
+
+  //remove evidence
+  static Future<bool> deleteEvidence(int evidenceId) async {
+    final response = await http.delete(
+      Uri.parse("http://10.0.2.2:3000/api/evidence/$evidenceId"),
+    );
+
+    return response.statusCode == 200;
+  }
 }

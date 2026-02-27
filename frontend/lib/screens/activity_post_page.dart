@@ -4,12 +4,17 @@ import '../services/activity_post_service.dart';
 import 'package:intl/intl.dart';
 import 'activity_history_page.dart';
 import 'activity_port_detail.dart';
-import 'add_activity_page.dart';
+import 'create_activity_page.dart';
 
 class ActivityPostPage extends StatefulWidget {
   final int portId;
+  final int userId;
 
-  const ActivityPostPage({super.key, required this.portId});
+  const ActivityPostPage({
+    super.key,
+    required this.portId,
+    required this.userId,
+  });
 
   @override
   State<ActivityPostPage> createState() => _ActivityPostPageState();
@@ -17,11 +22,25 @@ class ActivityPostPage extends StatefulWidget {
 
 class _ActivityPostPageState extends State<ActivityPostPage> {
   late Future<List<ActivityPost>> _futurePosts;
+  Map<int, bool> followStatus = {};
 
   @override
   void initState() {
     super.initState();
     _futurePosts = ActivityPostService.fetchPosts();
+    _loadFollowStatus();
+  }
+
+  void _loadFollowStatus() async {
+    final followedIds = await ActivityPostService.getFollowedActivities(
+      widget.userId,
+    );
+
+    setState(() {
+      for (var id in followedIds) {
+        followStatus[id] = true;
+      }
+    });
   }
 
   @override
@@ -43,8 +62,10 @@ class _ActivityPostPageState extends State<ActivityPostPage> {
                       Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(
-                          builder: (_) =>
-                              ActivityPortDetailPage(portId: widget.portId),
+                          builder: (_) => ActivityPortDetailPage(
+                            portId: widget.portId,
+                            userId: widget.userId,
+                          ),
                         ),
                       );
                     },
@@ -59,8 +80,10 @@ class _ActivityPostPageState extends State<ActivityPostPage> {
                       Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(
-                          builder: (_) =>
-                              ActivityHistoryPage(portId: widget.portId),
+                          builder: (_) => ActivityHistoryPage(
+                            portId: widget.portId,
+                            userId: widget.userId,
+                          ),
                         ),
                       );
                     },
@@ -115,6 +138,9 @@ class _ActivityPostPageState extends State<ActivityPostPage> {
                                 'dd MMM yyyy • HH:mm',
                               ).format(post.datetimeOfActivity!)
                             : "-";
+
+                        final isFollowed =
+                            followStatus[post.activityPostID] ?? false;
 
                         return Container(
                           margin: const EdgeInsets.only(bottom: 18),
@@ -262,54 +288,54 @@ class _ActivityPostPageState extends State<ActivityPostPage> {
 
                               const SizedBox(height: 16),
 
-                              Align(
-                                alignment: Alignment.centerRight,
-                                child: TextButton.icon(
-                                  style: TextButton.styleFrom(
-                                    foregroundColor: const Color(0xFF007AFF),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 14,
-                                      vertical: 8,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                  onPressed: () async {
-                                    final result = await Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => CreateActivityPage(
-                                          portId: widget.portId,
-                                          fromPost: true,
-                                          post: post,
-                                        ),
-                                      ),
-                                    );
+                              const SizedBox(height: 16),
 
-                                    if (result == true) {
-                                      Navigator.pushReplacement(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) => ActivityHistoryPage(
-                                            portId: widget.portId,
-                                          ),
-                                        ),
-                                      );
-                                    }
-                                  },
-                                  icon: const Icon(
-                                    Icons.arrow_forward_rounded,
-                                    size: 16,
-                                  ),
-                                  label: const Text(
-                                    "ทำกิจกรรม",
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w500,
-                                      fontSize: 13,
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  /// FOLLOW BUTTON
+                                  TextButton.icon(
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: isFollowed
+                                          ? Colors.red
+                                          : Colors.deepPurple,
+                                    ),
+                                    onPressed: () async {
+                                      final result =
+                                          await ActivityPostService.toggleFollow(
+                                            activitypostId:
+                                                post.activityPostID!,
+                                            userId: widget.userId,
+                                          );
+
+                                      setState(() {
+                                        followStatus[post.activityPostID!] =
+                                            result;
+                                      });
+                                    },
+                                    icon: Icon(
+                                      isFollowed
+                                          ? Icons.favorite
+                                          : Icons.favorite_border,
+                                      size: 16,
+                                    ),
+                                    label: Text(
+                                      isFollowed ? "Following" : "Follow",
                                     ),
                                   ),
-                                ),
+
+                                  /// ทำกิจกรรม
+                                  TextButton.icon(
+                                    onPressed: () {
+                                      // โค้ดเดิมของมอส
+                                    },
+                                    icon: const Icon(
+                                      Icons.arrow_forward_rounded,
+                                    ),
+                                    label: const Text("ทำกิจกรรม"),
+                                  ),
+                                ],
                               ),
                             ],
                           ),

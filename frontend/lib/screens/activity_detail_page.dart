@@ -5,11 +5,17 @@ import '../models/activity_port.dart';
 import 'activity_port_detail.dart';
 import 'activity_post_page.dart';
 import 'activity_history_page.dart';
+import 'create_activity_page.dart';
 
 class ActivityDetailPage extends StatefulWidget {
   final int activityId;
+  final int userId;
 
-  const ActivityDetailPage({super.key, required this.activityId});
+  const ActivityDetailPage({
+    super.key,
+    required this.activityId,
+    required this.userId,
+  });
 
   @override
   State<ActivityDetailPage> createState() => _ActivityDetailPageState();
@@ -33,6 +39,12 @@ class _ActivityDetailPageState extends State<ActivityDetailPage> {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+
+        print("RAW JSON: $data");
+
+        final fetchedActivity = Activity.fromJson(data);
+
+        print("RELATED POST ID: ${fetchedActivity.relatedPostId}");
 
         setState(() {
           activity = Activity.fromJson(data);
@@ -138,7 +150,10 @@ class _ActivityDetailPageState extends State<ActivityDetailPage> {
     final statusColor = activity!.status.color;
     final statusLabel = activity!.status.label;
 
-    final bool canDelete = activity!.status.label == "Waiting for approval";
+    final bool isWaiting = activity!.status == ActivityStatus.waitForProcess;
+
+    final bool canDelete = isWaiting;
+    final bool canEdit = isWaiting;
 
     final evidences = activity!.evidences ?? [];
 
@@ -185,8 +200,8 @@ class _ActivityDetailPageState extends State<ActivityDetailPage> {
                   child: ListView(
                     children: [
                       /// HEADER + STATUS
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
                             "รายละเอียดกิจกรรม",
@@ -195,23 +210,78 @@ class _ActivityDetailPageState extends State<ActivityDetailPage> {
                               fontWeight: FontWeight.w700,
                             ),
                           ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: statusColor.withOpacity(0.12),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              statusLabel,
-                              style: TextStyle(
-                                color: statusColor,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 12,
+
+                          const SizedBox(height: 12),
+
+                          Row(
+                            children: [
+                              if (canEdit)
+                                GestureDetector(
+                                  onTap: () async {
+                                    print("ACTIVITY ID: ${activity!.id}");
+                                    print(
+                                      "ACTIVITY PORT ID: ${activity!.activityPortID}",
+                                    );
+                                    final result = await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => CreateActivityPage(
+                                          portId: activity!.activityPortID,
+                                          activity: activity,
+                                          isEdit: true,
+                                          fromPost:
+                                              activity!.relatedPostId != null,
+                                          userId: widget.userId,
+                                        ),
+                                      ),
+                                    );
+
+                                    if (result == true) {
+                                      fetchActivity();
+                                    }
+                                  },
+                                  child: Container(
+                                    margin: const EdgeInsets.only(right: 10),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 5,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.blueAccent.withOpacity(
+                                        0.12,
+                                      ),
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: const Text(
+                                      "แก้ไข",
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.blueAccent,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: statusColor.withOpacity(0.12),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  statusLabel,
+                                  style: TextStyle(
+                                    color: statusColor,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 12,
+                                  ),
+                                ),
                               ),
-                            ),
+                            ],
                           ),
                         ],
                       ),

@@ -2,26 +2,32 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'dart:io';
+import 'package:flutter/cupertino.dart';
+
 import 'activity_port_detail.dart';
 import 'activity_history_page.dart';
 import 'activity_post_page.dart';
-import '../services/activity_port_service.dart';
 import '../services/activity_service.dart';
 import '../services/activity_evidence_service.dart';
-import 'package:flutter/cupertino.dart';
-import 'activity_post_page.dart';
+import '../models/activity_port.dart';
 import '../models/activity_post.dart';
 
 class CreateActivityPage extends StatefulWidget {
   final int portId;
   final bool fromPost;
   final ActivityPost? post;
+  final Activity? activity;
+  final bool isEdit;
+  final int userId;
 
   const CreateActivityPage({
     super.key,
     required this.portId,
     this.fromPost = false,
     this.post,
+    this.activity,
+    this.isEdit = false,
+    required this.userId,
   });
 
   @override
@@ -32,42 +38,85 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
   final nameController = TextEditingController();
   final locationController = TextEditingController();
   final descriptionController = TextEditingController();
-  final TextEditingController hourController = TextEditingController();
 
   DateTime? startDateTime;
   DateTime? endDateTime;
-  DateTime? selectedDate;
 
   final ImagePicker _picker = ImagePicker();
   final List<File> images = [];
+  List<ActivityEvidence> existingImages = [];
 
   bool isLoading = false;
-  bool get isReadOnly => widget.fromPost;
+  late bool isWaiting;
+  late bool isFromPost;
+
+  // ===================== INIT =====================
 
   @override
   void initState() {
     super.initState();
 
-    if (widget.fromPost && widget.post != null) {
-      nameController.text = widget.post!.title ?? "";
-      locationController.text = widget.post!.location ?? "";
+    isWaiting = true;
 
-      if (widget.post!.datetimeOfActivity != null) {
-        startDateTime = widget.post!.datetimeOfActivity;
+    /// 🔥 ถ้าเป็น edit → เช็คจาก activity.relatedPostId
+    if (widget.activity != null) {
+      final activity = widget.activity!;
 
-        // 🔥 คำนวณเวลาเลิกจากจำนวนชั่วโมง
-        if (widget.post!.hourOfActivity != null) {
-          endDateTime = startDateTime!.add(
-            Duration(hours: widget.post!.hourOfActivity!),
-          );
-        }
+      isWaiting = activity.status == ActivityStatus.waitForProcess;
+      isFromPost = activity.relatedPostId != null;
+
+      nameController.text = activity.name ?? "";
+      locationController.text = activity.location ?? "";
+      descriptionController.text = activity.description ?? "";
+
+      startDateTime = activity.datetime;
+
+      if (activity.datetime != null && activity.hour != null) {
+        endDateTime = activity.datetime!.add(Duration(hours: activity.hour!));
       }
 
-      hourController.text = widget.post!.hourOfActivity?.toString() ?? "";
+      existingImages = List.from(activity.evidences);
+    }
+    /// 🔥 ถ้าเป็น create จาก post
+    else if (widget.post != null) {
+      final p = widget.post!;
+
+      isFromPost = true; // 🔥 บังคับ true
+
+      nameController.text = p.title ?? "";
+      locationController.text = p.location ?? "";
+      descriptionController.text = p.description ?? "";
+
+      startDateTime = p.datetimeOfActivity;
+
+      if (p.datetimeOfActivity != null && p.hourOfActivity != null) {
+        endDateTime = p.datetimeOfActivity!.add(
+          Duration(hours: p.hourOfActivity!),
+        );
+      }
+    }
+    /// 🔥 create ปกติ
+    else {
+      isFromPost = false;
     }
   }
 
-  // ===================== DATE TIME =====================
+  // ===================== PERMISSION =====================
+
+  bool canEditField(String field) {
+    /// 🔥 ถ้ามาจาก post (ทั้ง create และ edit)
+    if (isFromPost) {
+      return field == "description" || field == "image";
+    }
+
+    /// 🔥 edit ปกติ
+    if (widget.isEdit) {
+      return isWaiting;
+    }
+
+    return true;
+  }
+  // ===================== DATE =====================
 
   Future<void> pickDate() async {
     final date = await showDatePicker(
@@ -105,98 +154,15 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
     });
   }
 
-  Future<void> pickStartTime() async {
+  Future<void> pickTime({required bool isStart}) async {
     if (startDateTime == null) {
       _showMessage("กรุณาเลือกวันก่อน");
       return;
     }
 
-    DateTime tempPicked = startDateTime!;
-
-    await showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (_) {
-        return SizedBox(
-          height: 300,
-          child: Column(
-            children: [
-              /// 🔥 iOS Header Bar
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-                decoration: const BoxDecoration(
-                  border: Border(bottom: BorderSide(color: Color(0xFFE5E5EA))),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      child: const Text(
-                        "Cancel",
-                        style: TextStyle(
-                          color: Color(0xFF8E8E93),
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          startDateTime = tempPicked;
-                          endDateTime = null; // reset end
-                        });
-                        Navigator.pop(context);
-                      },
-                      child: const Text(
-                        "Done",
-                        style: TextStyle(
-                          color: Color(0xFF007AFF),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              /// 🔥 Cupertino Picker
-              Expanded(
-                child: CupertinoDatePicker(
-                  mode: CupertinoDatePickerMode.time,
-                  use24hFormat: true,
-                  initialDateTime: startDateTime!,
-                  onDateTimeChanged: (value) {
-                    tempPicked = DateTime(
-                      startDateTime!.year,
-                      startDateTime!.month,
-                      startDateTime!.day,
-                      value.hour,
-                      value.minute,
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Future<void> pickEndTime() async {
-    if (startDateTime == null) {
-      _showMessage("กรุณาเลือกวันและเวลาเริ่มก่อน");
-      return;
-    }
-
-    DateTime tempPicked = endDateTime ?? startDateTime!;
+    DateTime tempPicked = isStart
+        ? startDateTime!
+        : (endDateTime ?? startDateTime!);
 
     await showModalBottomSheet(
       context: context,
@@ -221,6 +187,7 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
+                    /// Cancel
                     GestureDetector(
                       onTap: () => Navigator.pop(context),
                       child: const Text(
@@ -231,15 +198,23 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
                         ),
                       ),
                     ),
+
+                    /// Done
                     GestureDetector(
                       onTap: () {
-                        if (tempPicked.isBefore(startDateTime!)) {
+                        // 🔥 เช็คเวลาสิ้นสุด
+                        if (!isStart && tempPicked.isBefore(startDateTime!)) {
                           _showMessage("เวลาจบต้องมากกว่าเวลาเริ่ม");
                           return;
                         }
 
                         setState(() {
-                          endDateTime = tempPicked;
+                          if (isStart) {
+                            startDateTime = tempPicked;
+                            endDateTime = null; // reset end
+                          } else {
+                            endDateTime = tempPicked;
+                          }
                         });
 
                         Navigator.pop(context);
@@ -294,6 +269,10 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
   // ===================== SUBMIT =====================
 
   Future<void> submit() async {
+    print("==== SUBMIT START ====");
+    print("IS EDIT: ${widget.isEdit}");
+    print("ACTIVITY OBJECT: ${widget.activity}");
+    print("PORT ID: ${widget.portId}");
     if (isLoading) return;
 
     if (nameController.text.trim().isEmpty ||
@@ -310,28 +289,64 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
     try {
       setState(() => isLoading = true);
 
-      // 🔹 1️⃣ สร้าง Activity และเอา ID กลับมา
-      final activityId = await ActivityService.createActivity(
-        portId: widget.portId,
-        activityName: nameController.text.trim(),
-        description: descriptionController.text.trim(),
-        hour: hour,
-        location: locationController.text.trim(),
-        datetime: startDateTime!,
-      );
-
-      // 🔹 2️⃣ ถ้ามีรูป → upload
-      if (images.isNotEmpty) {
-        await ActivityEvidenceService.uploadEvidence(
-          activityId: activityId,
-          images: images,
+      // 🔥 ========= EDIT MODE =========
+      if (widget.isEdit && widget.activity != null) {
+        await ActivityService.updateActivity(
+          activityId: widget.activity!.id,
+          activityName: nameController.text.trim(),
+          description: descriptionController.text.trim(),
+          hour: hour,
+          location: locationController.text.trim(),
+          datetime: startDateTime!,
         );
+
+        if (images.isNotEmpty) {
+          await ActivityEvidenceService.uploadEvidence(
+            activityId: widget.activity!.id,
+            images: images,
+          );
+        }
+
+        if (!mounted) return;
+        Navigator.pop(context, true);
+        return; // 👈 ตัดจบตรงนี้เลย ไม่ให้ลงไป create
       }
 
-      if (!mounted) return;
-      Navigator.pop(context, true);
+      // 🔵 ========= CREATE MODE =========
+      if (widget.post != null) {
+        // 🔥 สร้างจาก Post
+        final success = await ActivityService.submitActivityFromPost(
+          postId: widget.post!.activityPostID,
+          userId: widget.userId,
+          description: descriptionController.text.trim(),
+          images: images,
+        );
+
+        if (!mounted) return;
+        Navigator.pop(context, success);
+      } else {
+        // 🔵 Create ปกติ
+        final activityId = await ActivityService.createActivity(
+          portId: widget.portId,
+          activityName: nameController.text.trim(),
+          description: descriptionController.text.trim(),
+          hour: hour,
+          location: locationController.text.trim(),
+          datetime: startDateTime!,
+        );
+
+        if (images.isNotEmpty) {
+          await ActivityEvidenceService.uploadEvidence(
+            activityId: activityId,
+            images: images,
+          );
+        }
+
+        if (!mounted) return;
+        Navigator.pop(context, true);
+      }
     } catch (e) {
-      _showMessage("เกิดข้อผิดพลาด");
+      _showMessage("เกิดข้อผิดพลาด: $e");
     } finally {
       if (mounted) {
         setState(() => isLoading = false);
@@ -340,11 +355,7 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
   }
 
   void _showMessage(String msg) {
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), behavior: SnackBarBehavior.floating),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
   // ===================== UI =====================
@@ -354,7 +365,7 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
-        backgroundColor: const Color(0xFFF5F6F8),
+        backgroundColor: const Color(0xFFF8F9FB),
         body: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -370,8 +381,10 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
                         Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(
-                            builder: (_) =>
-                                ActivityPortDetailPage(portId: widget.portId),
+                            builder: (_) => ActivityPortDetailPage(
+                              portId: widget.portId,
+                              userId: widget.userId,
+                            ),
                           ),
                         );
                       },
@@ -384,8 +397,10 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
                         Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(
-                            builder: (_) =>
-                                ActivityPostPage(portId: widget.portId),
+                            builder: (_) => ActivityPostPage(
+                              portId: widget.portId,
+                              userId: widget.userId,
+                            ),
                           ),
                         );
                       },
@@ -398,8 +413,10 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
                         Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(
-                            builder: (_) =>
-                                ActivityHistoryPage(portId: widget.portId),
+                            builder: (_) => ActivityHistoryPage(
+                              portId: widget.portId,
+                              userId: widget.userId,
+                            ),
                           ),
                         );
                       },
@@ -438,20 +455,23 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
                 const SizedBox(height: 20),
 
                 /// 🔥 TITLE
-                const Align(
+                Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    "เพิ่มกิจกรรมใหม่",
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
+                    widget.isEdit ? "แก้ไขกิจกรรม" : "เพิ่มกิจกรรมใหม่",
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
 
                 const SizedBox(height: 20),
 
-                /// 🔥 FORM
                 Expanded(
                   child: ListView(
                     children: [
+                      /// 🔥 CARD 1 : กิจกรรม
                       _softCard(
                         "กิจกรรม",
                         Column(
@@ -459,18 +479,19 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
                             _modernInput(
                               "ชื่อกิจกรรม",
                               nameController,
-                              readOnly: widget.fromPost,
+                              readOnly: !canEditField("name"),
                             ),
                             const SizedBox(height: 15),
                             _modernInput(
                               "สถานที่",
                               locationController,
-                              readOnly: widget.fromPost,
+                              readOnly: !canEditField("location"),
                             ),
                           ],
                         ),
                       ),
 
+                      /// 🔥 CARD 2 : วันที่และเวลา
                       _softCard(
                         "วันที่และเวลา",
                         Column(
@@ -484,7 +505,7 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
                                       "dd MMM yyyy",
                                     ).format(startDateTime!),
                               onTap: pickDate,
-                              readOnly: widget.fromPost,
+                              readOnly: !canEditField("datetime"),
                             ),
                             const SizedBox(height: 18),
                             _selector(
@@ -493,8 +514,8 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
                               text: startDateTime == null
                                   ? "เลือกเวลา"
                                   : DateFormat("HH:mm").format(startDateTime!),
-                              onTap: pickStartTime,
-                              readOnly: widget.fromPost,
+                              onTap: () => pickTime(isStart: true),
+                              readOnly: !canEditField("datetime"),
                             ),
                             const SizedBox(height: 18),
                             _selector(
@@ -503,18 +524,20 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
                               text: endDateTime == null
                                   ? "เลือกเวลา"
                                   : DateFormat("HH:mm").format(endDateTime!),
-                              onTap: pickEndTime,
-                              readOnly: widget.fromPost,
+                              onTap: () => pickTime(isStart: false),
+                              readOnly: !canEditField("datetime"),
                             ),
                           ],
                         ),
                       ),
 
+                      /// 🔥 CARD 3 : รายละเอียด
                       _softCard(
                         "รายละเอียดกิจกรรม",
                         TextField(
                           controller: descriptionController,
                           maxLines: 4,
+                          readOnly: !canEditField("description"),
                           decoration: InputDecoration(
                             hintText: "รายละเอียด",
                             filled: true,
@@ -531,6 +554,7 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
                         ),
                       ),
 
+                      /// 🔥 CARD 4 : รูปภาพ
                       _softCard(
                         "รูปภาพหลักฐานการเข้าร่วมกิจกรรม",
                         SizedBox(
@@ -538,6 +562,65 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
                           child: ListView(
                             scrollDirection: Axis.horizontal,
                             children: [
+                              /// รูปเก่า
+                              ...existingImages.map((e) {
+                                final imageUrl =
+                                    "http://10.0.2.2:3000/uploads/${e.picture}";
+
+                                return Padding(
+                                  padding: const EdgeInsets.only(right: 10),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(18),
+                                    child: Stack(
+                                      children: [
+                                        Image.network(
+                                          imageUrl,
+                                          width: 90,
+                                          height: 90,
+                                          fit: BoxFit.cover,
+                                        ),
+
+                                        if (canEditField("image"))
+                                          Positioned(
+                                            top: 6,
+                                            right: 6,
+                                            child: GestureDetector(
+                                              onTap: () async {
+                                                final success =
+                                                    await ActivityEvidenceService.deleteEvidence(
+                                                      e.id,
+                                                    );
+
+                                                if (success) {
+                                                  setState(() {
+                                                    existingImages.remove(e);
+                                                  });
+                                                } else {
+                                                  _showMessage(
+                                                    "ลบรูปไม่สำเร็จ",
+                                                  );
+                                                }
+                                              },
+                                              child: Container(
+                                                decoration: const BoxDecoration(
+                                                  color: Colors.black45,
+                                                  shape: BoxShape.circle,
+                                                ),
+                                                child: const Icon(
+                                                  Icons.close,
+                                                  size: 18,
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              }),
+
+                              /// รูปใหม่
                               ...images.map(
                                 (img) => Padding(
                                   padding: const EdgeInsets.only(right: 10),
@@ -578,25 +661,28 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
                                   ),
                                 ),
                               ),
-                              GestureDetector(
-                                onTap: pickImage,
-                                child: Container(
-                                  width: 90,
-                                  height: 90,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFF1F3F6),
-                                    borderRadius: BorderRadius.circular(18),
+
+                              /// ปุ่มเพิ่ม
+                              if (canEditField("image"))
+                                GestureDetector(
+                                  onTap: pickImage,
+                                  child: Container(
+                                    width: 90,
+                                    height: 90,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF1F3F6),
+                                      borderRadius: BorderRadius.circular(18),
+                                    ),
+                                    child: const Icon(Icons.add),
                                   ),
-                                  child: const Icon(Icons.add),
                                 ),
-                              ),
                             ],
                           ),
                         ),
                       ),
 
                       const SizedBox(height: 30),
-                      _gradientButton(),
+                      _submitButton(),
                       const SizedBox(height: 40),
                     ],
                   ),
@@ -605,6 +691,88 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _input(
+    String label,
+    TextEditingController controller, {
+    bool readOnly = false,
+  }) {
+    return TextField(
+      controller: controller,
+      readOnly: readOnly,
+      decoration: InputDecoration(
+        labelText: label,
+        filled: true,
+        fillColor: readOnly ? Colors.grey.shade100 : Colors.white,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+      ),
+    );
+  }
+
+  Widget _descriptionField() {
+    return TextField(
+      controller: descriptionController,
+      maxLines: 4,
+      decoration: InputDecoration(
+        hintText: "รายละเอียด",
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+      ),
+    );
+  }
+
+  Widget _imageSection() {
+    return SizedBox(
+      height: 95,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        children: [
+          ...existingImages.map((e) {
+            final imageUrl = "http://10.0.2.2:3000/uploads/${e.picture}";
+            return Padding(
+              padding: const EdgeInsets.only(right: 10),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: Image.network(
+                  imageUrl,
+                  width: 90,
+                  height: 90,
+                  fit: BoxFit.cover,
+                ),
+              ),
+            );
+          }),
+          ...images.map(
+            (img) => Padding(
+              padding: const EdgeInsets.only(right: 10),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: Image.file(
+                  img,
+                  width: 90,
+                  height: 90,
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+          ),
+          GestureDetector(
+            onTap: canEditField("image") ? pickImage : null,
+            child: Container(
+              width: 90,
+              height: 90,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade200,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Icon(Icons.add),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -629,7 +797,7 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
   }
 
   Widget _modernInput(
-    String label,
+    String hint,
     TextEditingController controller, {
     bool readOnly = false,
   }) {
@@ -637,10 +805,17 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
       controller: controller,
       readOnly: readOnly,
       decoration: InputDecoration(
-        labelText: label,
-        filled: readOnly,
-        fillColor: readOnly ? Colors.grey.shade100 : null,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+        hintText: hint,
+        filled: true,
+        fillColor: readOnly ? Colors.grey.shade200 : const Color(0xFFF1F3F6),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 18,
+          vertical: 16,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(18),
+          borderSide: BorderSide.none,
+        ),
       ),
     );
   }
@@ -695,9 +870,11 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
     );
   }
 
-  Widget _gradientButton() {
+  Widget _submitButton() {
+    final canSubmit = !widget.isEdit || isWaiting;
+
     return GestureDetector(
-      onTap: submit,
+      onTap: canSubmit ? submit : null,
       child: Container(
         height: 55,
         decoration: BoxDecoration(
@@ -719,14 +896,6 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
         ),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    nameController.dispose();
-    locationController.dispose();
-    descriptionController.dispose();
-    super.dispose();
   }
 }
 

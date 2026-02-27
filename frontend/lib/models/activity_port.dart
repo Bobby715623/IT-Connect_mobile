@@ -47,6 +47,7 @@ class ActivityPort {
 /// ===============================================
 class Activity {
   final int id;
+  final int activityPortID;
   final String? name;
   final String? description;
   final String? location;
@@ -54,9 +55,12 @@ class Activity {
   final ActivityStatus status;
   final String? comment;
   final List<ActivityEvidence> evidences;
+  final int? relatedPostId;
+  final DateTime? datetime;
 
   Activity({
     required this.id,
+    required this.activityPortID,
     this.name,
     this.description,
     this.location,
@@ -64,11 +68,14 @@ class Activity {
     required this.status,
     this.comment,
     required this.evidences,
+    this.relatedPostId,
+    this.datetime,
   });
 
   factory Activity.fromJson(Map<String, dynamic> json) {
     return Activity(
       id: json['ActivityID'],
+      activityPortID: json['ActivityPortID'],
       name: json['ActivityName'],
       description: json['Description'],
       location: json['Location'],
@@ -82,6 +89,10 @@ class Activity {
               ?.map((e) => ActivityEvidence.fromJson(e))
               .toList() ??
           [],
+      relatedPostId: json['RelatedPostID'],
+      datetime: json['DatetimeofActivity'] != null
+          ? DateTime.parse(json['DatetimeofActivity'])
+          : null,
     );
   }
 }

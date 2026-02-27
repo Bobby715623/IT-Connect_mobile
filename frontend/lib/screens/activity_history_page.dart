@@ -7,8 +7,13 @@ import 'activity_port_detail.dart';
 
 class ActivityHistoryPage extends StatefulWidget {
   final int portId;
+  final int userId;
 
-  const ActivityHistoryPage({super.key, required this.portId});
+  const ActivityHistoryPage({
+    super.key,
+    required this.portId,
+    required this.userId,
+  });
 
   @override
   State<ActivityHistoryPage> createState() => _ActivityHistoryPageState();
@@ -51,8 +56,10 @@ class _ActivityHistoryPageState extends State<ActivityHistoryPage> {
                           Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(
-                              builder: (_) =>
-                                  ActivityPortDetailPage(portId: widget.portId),
+                              builder: (_) => ActivityPortDetailPage(
+                                portId: widget.portId,
+                                userId: widget.userId,
+                              ),
                             ),
                           );
                         },
@@ -65,8 +72,10 @@ class _ActivityHistoryPageState extends State<ActivityHistoryPage> {
                           Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(
-                              builder: (_) =>
-                                  ActivityPostPage(portId: widget.portId),
+                              builder: (_) => ActivityPostPage(
+                                portId: widget.portId,
+                                userId: widget.userId,
+                              ),
                             ),
                           );
                         },
@@ -135,8 +144,10 @@ class _ActivityHistoryPageState extends State<ActivityHistoryPage> {
                             final result = await Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) =>
-                                    ActivityDetailPage(activityId: a.id!),
+                                builder: (_) => ActivityDetailPage(
+                                  activityId: a.id!,
+                                  userId: widget.userId,
+                                ),
                               ),
                             );
 

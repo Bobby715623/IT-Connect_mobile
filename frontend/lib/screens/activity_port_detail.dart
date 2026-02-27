@@ -2,15 +2,20 @@ import 'package:flutter/material.dart';
 import '../models/activity_port.dart';
 import '../services/activity_port_service.dart';
 import '../services/activity_post_service.dart';
-import 'add_activity_page.dart';
+import 'create_activity_page.dart';
 import 'activity_detail_page.dart';
 import 'activity_history_page.dart';
 import 'activity_post_page.dart';
 
 class ActivityPortDetailPage extends StatefulWidget {
   final int portId;
+  final int userId;
 
-  const ActivityPortDetailPage({super.key, required this.portId});
+  const ActivityPortDetailPage({
+    super.key,
+    required this.portId,
+    required this.userId,
+  });
 
   @override
   State<ActivityPortDetailPage> createState() => _ActivityPortDetailPageState();
@@ -82,8 +87,10 @@ class _ActivityPortDetailPageState extends State<ActivityPortDetailPage> {
                           Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(
-                              builder: (_) =>
-                                  ActivityPostPage(portId: widget.portId),
+                              builder: (_) => ActivityPostPage(
+                                portId: widget.portId,
+                                userId: widget.userId,
+                              ),
                             ),
                           );
                         },
@@ -96,8 +103,10 @@ class _ActivityPortDetailPageState extends State<ActivityPortDetailPage> {
                           Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(
-                              builder: (_) =>
-                                  ActivityHistoryPage(portId: widget.portId),
+                              builder: (_) => ActivityHistoryPage(
+                                portId: widget.portId,
+                                userId: widget.userId,
+                              ),
                             ),
                           );
                         },
@@ -220,8 +229,10 @@ class _ActivityPortDetailPageState extends State<ActivityPortDetailPage> {
                         final result = await Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) =>
-                                CreateActivityPage(portId: widget.portId),
+                            builder: (_) => CreateActivityPage(
+                              portId: widget.portId,
+                              userId: widget.userId,
+                            ),
                           ),
                         );
 
@@ -369,8 +380,10 @@ class _ActivityPortDetailPageState extends State<ActivityPortDetailPage> {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (_) =>
-                                          ActivityDetailPage(activityId: a.id!),
+                                      builder: (_) => ActivityDetailPage(
+                                        activityId: a.id!,
+                                        userId: widget.userId,
+                                      ),
                                     ),
                                   );
                                 },

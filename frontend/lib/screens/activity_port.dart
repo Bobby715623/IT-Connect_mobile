@@ -118,8 +118,10 @@ class _ActivityPageState extends State<ActivityPage> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) =>
-                                      ActivityPortDetailPage(portId: p.id),
+                                  builder: (_) => ActivityPortDetailPage(
+                                    portId: p.id,
+                                    userId: widget.userId,
+                                  ),
                                 ),
                               );
                             },
